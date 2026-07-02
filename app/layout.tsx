@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
-import FloatingActions from "@/components/Home/FloatingActions";
+
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -24,10 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} scroll-smooth`}>
       <body className="antialiased min-h-screen flex flex-col font-sans">
-        <Navbar />
         <main className="flex-grow">{children}</main>
-        <Footer />
-        <FloatingActions />
       </body>
     </html>
   );
