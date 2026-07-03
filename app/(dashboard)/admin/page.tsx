@@ -30,21 +30,6 @@ export default function AdminDashboard() {
           </motion.p>
         </div>
         
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex items-center gap-3"
-        >
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 rounded-full font-bold text-[13px] text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-all">
-            <Download className="w-4 h-4" />
-            Export Data
-          </button>
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-[#16A34A] rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(22,163,74,0.25)] hover:bg-[#15803d] hover:shadow-[0_8px_20px_rgba(22,163,74,0.4)] transition-all transform hover:-translate-y-0.5">
-            <Plus className="w-4 h-4" />
-            New Campaign
-          </button>
-        </motion.div>
       </div>
 
       {/* --- KPI CARDS --- */}
