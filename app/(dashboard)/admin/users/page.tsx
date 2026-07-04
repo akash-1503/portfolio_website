@@ -82,7 +82,7 @@ export default function UsersManagementPage() {
   );
 
   return (
-    <div className="relative min-h-[80vh] flex flex-col gap-8 pb-10">
+    <div className="relative flex flex-col gap-8">
       
       {/* --- CORNER BACKGROUND MOTIFS (Visible around the table) --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -125,7 +125,7 @@ export default function UsersManagementPage() {
       {/* --- CONFIRMATION MODAL --- */}
       <AnimatePresence>
         {modalState.isOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
@@ -215,31 +215,6 @@ export default function UsersManagementPage() {
         </div>
         
       </div>
-
-      {/* --- CONTROLS (Search & Filter) --- */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="relative z-10 flex flex-col sm:flex-row gap-4 justify-between"
-      >
-        <div className="relative w-full max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Search users by name or email..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/80 backdrop-blur-md border border-gray-200 rounded-full py-3 pl-11 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 transition-all shadow-sm"
-          />
-        </div>
-        
-        <button className="flex items-center justify-center gap-2 px-5 py-3 bg-white/80 backdrop-blur-md border border-gray-200 rounded-full font-bold text-[13px] text-gray-600 shadow-sm hover:bg-white transition-all">
-          <Filter className="w-4 h-4" />
-          Filter by Role
-          <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-1" />
-        </button>
-      </motion.div>
 
       {/* --- USERS TABLE --- */}
       <motion.div 

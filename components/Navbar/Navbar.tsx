@@ -30,7 +30,7 @@ export default function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         // Premium Full-Width Container
-        className="sticky top-0 w-full z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm px-6 py-4 lg:px-10 transition-all duration-300"
+        className="fixed top-0 left-0 w-full z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm px-6 py-4 lg:px-10 transition-all duration-300"
       >
         <div className="max-w-[1600px] mx-auto flex items-center justify-between">
           

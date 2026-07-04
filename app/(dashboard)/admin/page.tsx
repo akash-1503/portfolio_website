@@ -8,10 +8,10 @@ import {
 
 export default function AdminDashboard() {
   return (
-    <div className="flex flex-col gap-8 pb-10">
+    <div className="flex flex-col">
       
       {/* --- PAGE HEADER --- */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
           <motion.h1 
             initial={{ opacity: 0, y: 10 }}
@@ -24,7 +24,7 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-gray-500 font-medium mt-1"
+            className="text-gray-500 font-medium mt-3"
           >
             Here's what's happening at Nishkam Samarpan Foundation today.
           </motion.p>
@@ -33,7 +33,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* --- KPI CARDS --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         
         {/* Card 1: Donations */}
         <motion.div 

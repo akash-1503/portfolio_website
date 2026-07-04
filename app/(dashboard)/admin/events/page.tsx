@@ -80,7 +80,7 @@ export default function EventsManagementPage() {
   );
 
   return (
-    <div className="relative min-h-[80vh] flex flex-col gap-8 pb-10">
+    <div className="relative flex flex-col gap-8">
       
       {/* --- CORNER BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">

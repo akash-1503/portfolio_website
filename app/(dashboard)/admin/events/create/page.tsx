@@ -54,7 +54,7 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="relative min-h-[80vh] pb-20">
+    <div className="relative pb-20">
       
       {/* --- PAGE-LEVEL MOTIF (Top Right Corner Accent) --- */}
       <div className="absolute top-0 right-0 w-64 h-64 pointer-events-none overflow-hidden z-0 opacity-40 mix-blend-multiply">

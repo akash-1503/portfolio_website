@@ -164,7 +164,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const Icon = config.icon;
 
   return (
-    <div className="h-screen bg-[#fafafa] font-sans flex text-gray-900 overflow-hidden">
+    <div className="h-full bg-[#fafafa] font-sans flex text-gray-900 overflow-hidden">
       
       {/* --- SIDEBAR --- */}
       <motion.aside 
@@ -302,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Children wrapped in relative z-10 to stay above motifs */}
-          <div className="relative z-10 p-6 lg:p-10 max-w-[1600px] mx-auto">
+          <div className="relative z-10 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full min-h-full">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

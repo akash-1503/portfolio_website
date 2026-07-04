@@ -77,7 +77,7 @@ export default function VolunteersPage() {
   );
 
   return (
-    <div className="relative min-h-screen flex flex-col gap-8 pb-10 overflow-x-hidden">
+    <div className="relative flex flex-col gap-8 overflow-x-hidden">
       
       {/* --- UNIQUE BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -217,10 +217,10 @@ export default function VolunteersPage() {
       <AnimatePresence>
         {selectedVolunteer && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDrawer} className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm z-[100]" />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDrawer} className="fixed top-[73px] inset-x-0 bottom-0 bg-gray-900/30 backdrop-blur-sm z-[100]" />
             <motion.div 
               initial={{ x: "100%", opacity: 0.5 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0.5 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-full max-w-[500px] bg-white shadow-2xl z-[101] flex flex-col border-l border-gray-100 overflow-hidden"
+              className="fixed top-[73px] right-0 bottom-0 w-full max-w-[500px] bg-white shadow-2xl z-[101] flex flex-col border-l border-gray-100 overflow-hidden"
             >
               <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
                 <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Volunteer Profile</h2>
@@ -375,12 +375,12 @@ export default function VolunteersPage() {
       {/* --- MODALS (Assign Program / Assign Event) --- */}
       <AnimatePresence>
         {modalType && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[120] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModalType(null)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
             
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100 flex flex-col z-[121]"
+              className="relative w-full max-w-lg max-h-full bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100 flex flex-col z-[121] overflow-y-auto custom-scrollbar"
             >
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">

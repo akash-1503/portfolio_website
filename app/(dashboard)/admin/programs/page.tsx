@@ -66,7 +66,7 @@ export default function ProgramsPage() {
   );
 
   return (
-    <div className="relative min-h-screen flex flex-col gap-8 pb-10 overflow-x-hidden">
+    <div className="relative flex flex-col gap-8 overflow-x-hidden">
       
       {/* ========================================================= */}
       {/* --- UNIQUE BACKGROUND MOTIFS --- */}
@@ -259,7 +259,7 @@ export default function ProgramsPage() {
       {/* ==================================================== */}
       <AnimatePresence>
         {selectedProgram && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProgram(null)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
@@ -382,7 +382,7 @@ export default function ProgramsPage() {
       {/* ==================================================== */}
       <AnimatePresence>
         {isCreateModalOpen && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[120] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsCreateModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
             
             <motion.div

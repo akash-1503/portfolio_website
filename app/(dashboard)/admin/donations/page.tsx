@@ -57,7 +57,7 @@ export default function DonationsPage() {
   );
 
   return (
-    <div className="relative min-h-[80vh] flex flex-col gap-8 pb-10">
+    <div className="relative flex flex-col gap-8">
       
       {/* --- CORNER BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -97,6 +97,7 @@ export default function DonationsPage() {
           </motion.p>
         </div>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex gap-3">
+          
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-6 py-3.5 bg-[#16A34A] rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(22,163,74,0.25)] hover:bg-[#15803d] hover:shadow-[0_8px_20px_rgba(22,163,74,0.4)] transition-all transform hover:-translate-y-0.5"
@@ -105,28 +106,6 @@ export default function DonationsPage() {
           </button>
         </motion.div>
       </div>
-
-      {/* --- CONTROLS (Filters & Search) --- */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="relative z-10 flex flex-col xl:flex-row gap-4 justify-between">
-        <div className="relative w-full xl:max-w-md group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Search by Donor, Receipt ID, or Campaign..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/80 backdrop-blur-md border border-gray-200 rounded-full py-3.5 pl-11 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 transition-all shadow-sm hover:bg-white"
-          />
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          {["Campaign", "Date", "Payment Status", "Payment Method"].map((filter) => (
-            <button key={filter} className="flex items-center justify-center gap-2 px-5 py-3.5 bg-white/80 backdrop-blur-md border border-gray-200 rounded-full font-bold text-[13px] text-gray-600 shadow-sm hover:bg-white hover:border-[#16a34a]/30 transition-all">
-              <Filter className="w-3.5 h-3.5 text-gray-400" /> {filter} <ChevronDown className="w-3.5 h-3.5 text-gray-400 ml-1" />
-            </button>
-          ))}
-        </div>
-      </motion.div>
 
       {/* --- DONATIONS TABLE --- */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="relative z-10 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
@@ -194,7 +173,7 @@ export default function DonationsPage() {
       {/* ==================================================== */}
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[100] flex items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }}
@@ -209,7 +188,7 @@ export default function DonationsPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col z-[101] overflow-hidden"
+              className="relative w-full max-w-2xl max-h-full bg-white rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col z-[101] overflow-y-auto custom-scrollbar"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
@@ -315,7 +294,7 @@ export default function DonationsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeDrawer}
-              className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm z-[100]"
+              className="fixed top-[73px] inset-x-0 bottom-0 bg-gray-900/30 backdrop-blur-sm z-[100]"
             />
             
             {/* Drawer Panel */}
@@ -324,7 +303,7 @@ export default function DonationsPage() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: "100%", opacity: 0.5 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col border-l border-gray-100 overflow-hidden"
+              className="fixed top-[73px] right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col border-l border-gray-100 overflow-hidden"
             >
               {/* Drawer Header */}
               <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-gray-50/50">
