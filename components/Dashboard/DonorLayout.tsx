@@ -5,9 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, Heart, Target, Users, Calendar, 
-  Award, Bookmark, MessageSquare, Bell, User,
-  Settings, LogOut, Search, CloudSun, ChevronDown,
-  Gift
+  Award,Settings, LogOut,
 } from "lucide-react";
 import React, { useState } from "react";
 

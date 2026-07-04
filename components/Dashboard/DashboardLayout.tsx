@@ -32,10 +32,9 @@ const getRoleConfig = (pathname: string) => {
         { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
         { name: "Users", href: "/admin/users", icon: Users },
         { name: "Donations", href: "/admin/donations", icon: Heart },
-        { name: "Campaigns", href: "/admin/campaigns", icon: PieChart },
         { name: "Programs", href: "/admin/programs", icon: BookOpen },
         { name: "Volunteers", href: "/admin/volunteers", icon: Users },
-        { name: "Events", href: "/admin/events", icon: Calendar },
+        { name: "Events & Campaigns", href: "/admin/events", icon: Calendar },
         { name: "Settings", href: "/admin/settings", icon: Settings },
       ]
     };

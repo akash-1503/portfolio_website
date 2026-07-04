@@ -3,16 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Loader2, User, Mail, Phone, Lock, Heart, Shield, Building2, Landmark, PenTool, ClipboardList, Check } from "lucide-react";
-
-const roles = [
-  { id: "volunteer", label: "Volunteer", icon: Heart, color: "text-rose-500", bg: "bg-rose-100", border: "border-rose-200", selected: "border-rose-500 bg-rose-50" },
-  { id: "donor", label: "Donor", icon: Landmark, color: "text-emerald-500", bg: "bg-emerald-100", border: "border-emerald-200", selected: "border-emerald-500 bg-emerald-50" },
-  { id: "coordinator", label: "Coordinator", icon: ClipboardList, color: "text-blue-500", bg: "bg-blue-100", border: "border-blue-200", selected: "border-blue-500 bg-blue-50" },
-  { id: "admin", label: "Org Admin", icon: Shield, color: "text-purple-500", bg: "bg-purple-100", border: "border-purple-200", selected: "border-purple-500 bg-purple-50" },
-  { id: "finance", label: "Finance", icon: Building2, color: "text-amber-500", bg: "bg-amber-100", border: "border-amber-200", selected: "border-amber-500 bg-amber-50" },
-  { id: "content", label: "Content", icon: PenTool, color: "text-cyan-500", bg: "bg-cyan-100", border: "border-cyan-200", selected: "border-cyan-500 bg-cyan-50" },
-];
+import { Loader2, User, Mail, Phone, Lock, Building2, } from "lucide-react";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -103,36 +94,6 @@ export default function RegisterPage() {
           {/* Scrollable Form Container */}
           <div className="flex flex-col gap-6 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar pb-4">
             
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold text-gray-700">Select Your Role</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {roles.map((role) => (
-                  <motion.button
-                    type="button"
-                    key={role.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedRole(role.id)}
-                    className={`relative flex flex-col items-center justify-center p-3 rounded-[1.2rem] border-2 transition-all ${
-                      selectedRole === role.id ? role.selected : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
-                    }`}
-                  >
-                    {selectedRole === role.id && (
-                      <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-[#16A34A] flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white stroke-[3px]" />
-                      </div>
-                    )}
-                    <div className={`p-2 rounded-full mb-2 ${role.bg}`}>
-                      <role.icon className={`w-5 h-5 ${role.color}`} />
-                    </div>
-                    <span className={`text-xs font-bold ${selectedRole === role.id ? 'text-gray-900' : 'text-gray-500'}`}>
-                      {role.label}
-                    </span>
-                  </motion.button>
-                ))}
-              </div>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Full Name */}
@@ -199,24 +160,6 @@ export default function RegisterPage() {
               <input type="text" placeholder="Country" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="State" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="City" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
-            </div>
-
-            {/* Checkboxes */}
-            <div className="space-y-4 mt-2">
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative flex items-center justify-center mt-0.5">
-                  <input type="checkbox" required className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#16A34A] checked:border-[#16A34A] transition-colors cursor-pointer" />
-                  <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" viewBox="0 0 14 10" fill="none"><path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">I accept the Terms of Service and Privacy Policy.</span>
-              </label>
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative flex items-center justify-center mt-0.5">
-                  <input type="checkbox" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#16A34A] checked:border-[#16A34A] transition-colors cursor-pointer" />
-                  <svg className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" viewBox="0 0 14 10" fill="none"><path d="M1 5L4.5 8.5L13 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Subscribe to our newsletter for impact updates.</span>
-              </label>
             </div>
           </div>
 
