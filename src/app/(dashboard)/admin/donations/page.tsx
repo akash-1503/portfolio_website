@@ -3,18 +3,18 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Search, Filter, Plus, Download, Eye, Receipt, Edit3, Trash2, 
+   Plus, Download, Eye, Receipt, Edit3, Trash2, 
   X, Mail, Printer, CreditCard, Banknote, Smartphone, CheckCircle2, 
-  ChevronDown
+  ChevronDown, AlertCircle
 } from "lucide-react";
 
 // --- DUMMY DATA ---
 const initialDonations = [
-  { id: "RCP-1024", donorName: "Akash Dandale", email: "akash@example.com", phone: "+91 98765 43210", campaign: "Education Initiative", amount: "₹50,000", method: "UPI", status: "Successful", date: "24 Oct 2026", txnId: "TXN-9876543210A" },
-  { id: "RCP-1025", donorName: "Priya Sharma", email: "priya@example.com", phone: "+91 98765 43211", campaign: "Health Camp", amount: "₹15,000", method: "Credit Card", status: "Successful", date: "23 Oct 2026", txnId: "TXN-9876543211B" },
-  { id: "RCP-1026", donorName: "Rahul Verma", email: "rahul.v@example.com", phone: "+91 98765 43212", campaign: "General Fund", amount: "₹5,000", method: "Bank Transfer", status: "Pending", date: "22 Oct 2026", txnId: "TXN-9876543212C" },
-  { id: "RCP-1027", donorName: "Sneha Patel", email: "sneha.p@example.com", phone: "+91 98765 43213", campaign: "Tree Plantation", amount: "₹2,500", method: "UPI", status: "Successful", date: "20 Oct 2026", txnId: "TXN-9876543213D" },
-  { id: "RCP-1028", donorName: "Amit Kumar", email: "amit.k@example.com", phone: "+91 98765 43214", campaign: "Disaster Relief", amount: "₹1,00,000", method: "Cheque", status: "Failed", date: "18 Oct 2026", txnId: "TXN-9876543214E" },
+  { id: "RCP-1024", donorName: "Akash Dandale", email: "akash@example.com", phone: "+91 98765 43210", campaign: "Education Initiative", amount: "50000", method: "UPI", status: "Successful", date: "24 Oct 2026", txnId: "TXN-9876543210A" },
+  { id: "RCP-1025", donorName: "Priya Sharma", email: "priya@example.com", phone: "+91 98765 43211", campaign: "Health Camp", amount: "15000", method: "Credit Card", status: "Successful", date: "23 Oct 2026", txnId: "TXN-9876543211B" },
+  { id: "RCP-1026", donorName: "Rahul Verma", email: "rahul.v@example.com", phone: "+91 98765 43212", campaign: "General Fund", amount: "5000", method: "Bank Transfer", status: "Pending", date: "22 Oct 2026", txnId: "TXN-9876543212C" },
+  { id: "RCP-1027", donorName: "Sneha Patel", email: "sneha.p@example.com", phone: "+91 98765 43213", campaign: "Tree Plantation", amount: "2500", method: "UPI", status: "Successful", date: "20 Oct 2026", txnId: "TXN-9876543213D" },
+  { id: "RCP-1028", donorName: "Amit Kumar", email: "amit.k@example.com", phone: "+91 98765 43214", campaign: "Disaster Relief", amount: "100000", method: "Cheque", status: "Failed", date: "18 Oct 2026", txnId: "TXN-9876543214E" },
 ];
 
 // Helper components for Badges
@@ -30,16 +30,29 @@ const MethodIcon = ({ method }: { method: string }) => {
   return <Banknote className="w-4 h-4 text-[#16a34a]" />;
 };
 
+// Formatter for Indian Rupees
+const formatCurrency = (amount: string) => {
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(amount));
+};
+
 export default function DonationsPage() {
+  const [donations, setDonations] = useState(initialDonations);
   const [searchQuery, setSearchQuery] = useState("");
   
   // States for Drawer (View Mode)
   const [selectedDonation, setSelectedDonation] = useState<typeof initialDonations[0] | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // State for Add Modal
+  // States for Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [donationToEdit, setDonationToEdit] = useState<typeof initialDonations[0] | null>(null);
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [donationToDelete, setDonationToDelete] = useState<typeof initialDonations[0] | null>(null);
+
+  // --- Handlers ---
   const openDrawer = (donation: typeof initialDonations[0]) => {
     setSelectedDonation(donation);
     setIsDrawerOpen(true);
@@ -50,14 +63,32 @@ export default function DonationsPage() {
     setTimeout(() => setSelectedDonation(null), 300);
   };
 
-  const filteredDonations = initialDonations.filter(d => 
+  const openEditModal = (donation: typeof initialDonations[0]) => {
+    setDonationToEdit(donation);
+    setIsEditModalOpen(true);
+  };
+
+  const openDeleteModal = (donation: typeof initialDonations[0]) => {
+    setDonationToDelete(donation);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (donationToDelete) {
+      setDonations(donations.filter(d => d.id !== donationToDelete.id));
+    }
+    setIsDeleteModalOpen(false);
+    setDonationToDelete(null);
+  };
+
+  const filteredDonations = donations.filter(d => 
     d.donorName.toLowerCase().includes(searchQuery.toLowerCase()) || 
     d.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.campaign.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-    <div className="relative flex flex-col gap-8">
+    <div className="relative min-h-[80vh] flex flex-col gap-8 pb-10">
       
       {/* --- CORNER BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -97,7 +128,6 @@ export default function DonationsPage() {
           </motion.p>
         </div>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex gap-3">
-          
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-6 py-3.5 bg-[#16A34A] rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(22,163,74,0.25)] hover:bg-[#15803d] hover:shadow-[0_8px_20px_rgba(22,163,74,0.4)] transition-all transform hover:-translate-y-0.5"
@@ -130,12 +160,12 @@ export default function DonationsPage() {
                     <td className="py-4 px-6 text-[13px] font-bold text-gray-500">{d.id}</td>
                     <td className="py-4 px-6">
                       <div className="flex flex-col">
-                        <span className="font-extrabold text-gray-900 text-[14px] group-hover:text-[#16a34a] transition-colors cursor-pointer">{d.donorName}</span>
+                        <span className="font-extrabold text-gray-900 text-[14px] group-hover:text-[#16a34a] transition-colors cursor-pointer" onClick={() => openDrawer(d)}>{d.donorName}</span>
                         <span className="font-bold text-gray-400 text-[11px]">{d.email}</span>
                       </div>
                     </td>
                     <td className="py-4 px-6 text-[13px] font-bold text-gray-600">{d.campaign}</td>
-                    <td className="py-4 px-6 text-[14px] font-extrabold text-gray-900">{d.amount}</td>
+                    <td className="py-4 px-6 text-[14px] font-extrabold text-gray-900">{formatCurrency(d.amount)}</td>
                     <td className="py-4 px-6">
                       <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-600">
                         <MethodIcon method={d.method} /> {d.method}
@@ -151,10 +181,10 @@ export default function DonationsPage() {
                         <button className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-all" title="Download Receipt">
                           <Receipt className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-[#f97316] hover:bg-orange-50 rounded-full transition-all" title="Edit">
+                        <button onClick={() => openEditModal(d)} className="p-2 text-gray-400 hover:text-[#f97316] hover:bg-orange-50 rounded-full transition-all" title="Edit">
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="Delete">
+                        <button onClick={() => openDeleteModal(d)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all" title="Delete">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -164,119 +194,186 @@ export default function DonationsPage() {
               </AnimatePresence>
             </tbody>
           </table>
+          {filteredDonations.length === 0 && (
+            <div className="py-20 text-center flex flex-col items-center justify-center text-gray-400">
+              <Receipt className="w-12 h-12 mb-4 opacity-20" />
+              <p className="text-[13px] font-bold">No donations found.</p>
+            </div>
+          )}
         </div>
       </motion.div>
 
-
       {/* ==================================================== */}
-      {/* --- ADD OFFLINE DONATION MODAL (POPUP) ---           */}
+      {/* --- ADD OFFLINE DONATION MODAL --- */}
       {/* ==================================================== */}
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[100] flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsAddModalOpen(false)}
-              className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
-            />
-            
-            {/* Modal Card */}
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAddModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl max-h-full bg-white rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col z-[101] overflow-y-auto custom-scrollbar"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 flex flex-col z-[1000] max-h-[90vh] overflow-hidden"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
                 <div>
                   <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Add Offline Donation</h2>
                   <p className="text-[13px] font-bold text-gray-400 mt-1">Record a manual donation received outside the platform.</p>
                 </div>
-                <button 
-                  onClick={() => setIsAddModalOpen(false)} 
-                  className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <button onClick={() => setIsAddModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-colors shadow-sm"><X className="w-5 h-5" /></button>
               </div>
 
-              {/* Form Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-                
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donor Name *</label>
-                  <input type="text" placeholder="e.g., John Doe" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Email Address</label>
-                  <input type="email" placeholder="john@example.com" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Campaign *</label>
-                  <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none appearance-none cursor-pointer">
-                    <option value="">Select a Campaign</option>
-                    <option value="general">General Fund</option>
-                    <option value="education">Education Initiative</option>
-                    <option value="health">Health Camp</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donation Amount *</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
-                    <input type="number" placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 pl-9 pr-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none" />
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donor Name *</label>
+                    <input type="text" placeholder="e.g., John Doe" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Email Address</label>
+                    <input type="email" placeholder="john@example.com" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Campaign *</label>
+                    <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none cursor-pointer">
+                      <option value="">Select a Campaign</option>
+                      <option value="general">General Fund</option>
+                      <option value="education">Education Initiative</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donation Amount *</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                      <input type="number" placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 pl-9 pr-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Payment Method *</label>
+                    <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none cursor-pointer">
+                      <option value="Cash">Cash</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Bank Transfer">Bank Transfer / NEFT</option>
+                      <option value="UPI">UPI (Offline QR)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Date Received *</label>
+                    <input type="date" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-700" />
                   </div>
                 </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Payment Method *</label>
-                  <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none appearance-none cursor-pointer">
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Bank Transfer">Bank Transfer / NEFT</option>
-                    <option value="UPI">UPI (Offline QR)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Date Received *</label>
-                  <input type="date" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none text-gray-700" />
-                </div>
-
-                <div className="space-y-1.5 col-span-1 md:col-span-2">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Reference Number (Optional)</label>
-                  <input type="text" placeholder="Cheque no., UTR, or Txn ID" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none" />
-                </div>
-
-                <div className="space-y-1.5 col-span-1 md:col-span-2">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Remarks</label>
-                  <textarea rows={2} placeholder="Any additional notes about this donation..." className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:bg-white transition-all outline-none resize-none custom-scrollbar" />
-                </div>
-
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button 
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-6 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="px-8 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#16A34A] hover:bg-[#15803d] shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all flex items-center gap-2"
-                >
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 flex justify-end gap-3">
+                <button onClick={() => setIsAddModalOpen(false)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
+                <button onClick={() => setIsAddModalOpen(false)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#16A34A] hover:bg-[#15803d] shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" /> Save Donation
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
+      {/* ==================================================== */}
+      {/* --- EDIT DONATION MODAL --- */}
+      {/* ==================================================== */}
+      <AnimatePresence>
+        {isEditModalOpen && donationToEdit && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 flex flex-col z-[1000] max-h-[90vh] overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                <div>
+                  <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Edit Donation Record</h2>
+                  <p className="text-[13px] font-bold text-gray-400 mt-1">Receipt ID: {donationToEdit.id}</p>
+                </div>
+                <button onClick={() => setIsEditModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-200 hover:bg-gray-50 rounded-full transition-colors shadow-sm"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donor Name *</label>
+                    <input type="text" defaultValue={donationToEdit.donorName} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Email Address</label>
+                    <input type="email" defaultValue={donationToEdit.email} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Campaign *</label>
+                    <select defaultValue={donationToEdit.campaign} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none cursor-pointer">
+                      <option value="Education Initiative">Education Initiative</option>
+                      <option value="Health Camp">Health Camp</option>
+                      <option value="General Fund">General Fund</option>
+                      <option value="Tree Plantation">Tree Plantation</option>
+                      <option value="Disaster Relief">Disaster Relief</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Donation Amount *</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">₹</span>
+                      <input type="number" defaultValue={donationToEdit.amount} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 pl-9 pr-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Status</label>
+                    <select defaultValue={donationToEdit.status} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none cursor-pointer">
+                      <option value="Successful">Successful</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Failed">Failed</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 flex justify-end gap-3">
+                <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors shadow-sm">Cancel</button>
+                <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#f97316] hover:bg-[#ea580c] shadow-[0_8px_20px_rgba(249,115,22,0.25)] transition-all flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Save Changes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ==================================================== */}
+      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {/* ==================================================== */}
+      <AnimatePresence>
+        {isDeleteModalOpen && donationToDelete && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDeleteModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col items-center text-center z-[1000]"
+            >
+              <button onClick={() => setIsDeleteModalOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-red-50 text-red-500">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Delete Record?</h3>
+              <p className="text-[13px] font-bold text-gray-500 mb-8 leading-relaxed">
+                Are you sure you want to permanently delete receipt <strong className="text-gray-800">{donationToDelete.id}</strong>? This action cannot be undone and will remove it from financial reports.
+              </p>
+
+              <div className="w-full flex gap-3">
+                <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleDeleteConfirm} className="flex-1 py-3.5 rounded-full font-bold text-[13px] text-white bg-red-500 hover:bg-red-600 shadow-[0_8px_20px_rgba(239,68,68,0.3)] transition-all">
+                  Yes, Delete
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -288,35 +385,19 @@ export default function DonationsPage() {
       <AnimatePresence>
         {isDrawerOpen && selectedDonation && (
           <>
-            {/* Dark Backdrop */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDrawer} className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm z-[999]" />
             <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeDrawer}
-              className="fixed top-[73px] inset-x-0 bottom-0 bg-gray-900/30 backdrop-blur-sm z-[100]"
-            />
-            
-            {/* Drawer Panel */}
-            <motion.div 
-              initial={{ x: "100%", opacity: 0.5 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "100%", opacity: 0.5 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed top-[73px] right-0 bottom-0 w-full max-w-md bg-white shadow-2xl z-[101] flex flex-col border-l border-gray-100 overflow-hidden"
+              initial={{ x: "100%", opacity: 0.5 }} animate={{ x: 0, opacity: 1 }} exit={{ x: "100%", opacity: 0.5 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[1000] flex flex-col border-l border-gray-100 overflow-hidden"
             >
-              {/* Drawer Header */}
               <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-gray-50/50">
                 <div>
                   <h2 className="text-lg font-extrabold text-gray-900 tracking-tight">Donation Details</h2>
                   <p className="text-[12px] font-bold text-gray-400 mt-0.5">Receipt: {selectedDonation.id}</p>
                 </div>
-                <button onClick={closeDrawer} className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-200 rounded-full shadow-sm transition-all hover:bg-gray-50">
-                  <X className="w-4 h-4" />
-                </button>
+                <button onClick={closeDrawer} className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-200 rounded-full shadow-sm transition-all hover:bg-gray-50"><X className="w-4 h-4" /></button>
               </div>
 
-              {/* Drawer Scrollable Content */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 
                 {/* 1. Donor Information */}
@@ -337,7 +418,7 @@ export default function DonationsPage() {
                 <div className="bg-white border border-gray-100 shadow-sm rounded-[1.5rem] p-5 mb-8 grid grid-cols-2 gap-y-6 gap-x-4">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Amount</span>
-                    <span className="text-[18px] font-extrabold text-[#16a34a]">{selectedDonation.amount}</span>
+                    <span className="text-[18px] font-extrabold text-[#16a34a]">{formatCurrency(selectedDonation.amount)}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1">Status</span>
@@ -381,31 +462,26 @@ export default function DonationsPage() {
                 <h3 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-4">Transaction Timeline</h3>
                 <div className="pl-4 pb-4">
                   <div className="relative border-l-2 border-gray-100 flex flex-col gap-6">
-                    
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#16a34a] border-4 border-white shadow-sm"></div>
                       <p className="text-[13px] font-extrabold text-gray-900">Donation Initiated</p>
                       <span className="text-[11px] font-bold text-gray-400 block mt-0.5">{selectedDonation.date} - 10:23 AM</span>
                     </div>
-
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#16a34a] border-4 border-white shadow-sm"></div>
                       <p className="text-[13px] font-extrabold text-gray-900">Payment Verified</p>
                       <span className="text-[11px] font-bold text-gray-400 block mt-0.5">{selectedDonation.date} - 10:25 AM</span>
                     </div>
-
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#16a34a] border-4 border-white shadow-sm"></div>
                       <p className="text-[13px] font-extrabold text-gray-900">Receipt Generated</p>
                       <span className="text-[11px] font-bold text-gray-400 block mt-0.5">Receipt {selectedDonation.id} created.</span>
                     </div>
-
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gray-200 border-4 border-white shadow-sm"></div>
                       <p className="text-[13px] font-extrabold text-gray-500">Email Sent</p>
                       <span className="text-[11px] font-bold text-gray-400 block mt-0.5">Pending delivery to donor.</span>
                     </div>
-
                   </div>
                 </div>
 

@@ -1,0 +1,748 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//////////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////////
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  VOLUNTEER
+  USER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ProgramStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CLOSED
+}
+
+enum EventStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum DonationMode {
+  ONLINE
+  OFFLINE
+}
+
+enum DonationStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum CertificateStatus {
+  GENERATED
+  ISSUED
+  REVOKED
+}
+
+//////////////////////////////////////////////////////////
+// NGO
+//////////////////////////////////////////////////////////
+
+model NGO {
+  id String @id @default(cuid())
+
+  name String
+
+  email String? @unique
+
+  phone String?
+
+  website String?
+
+  logo String?
+
+  address String?
+
+  city String?
+
+  state String?
+
+  country String?
+
+  postalCode String?
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean @default(false)
+
+  deletedAt DateTime?
+
+  //////////////////////////////////////////////////////
+
+  users User[]
+
+  programs Program[]
+
+  campaigns Campaign[]
+
+  events Event[]
+
+  donations Donation[]
+
+  //////////////////////////////////////////////////////
+
+  @@index([name])
+  @@index([city])
+  @@index([country])
+}
+
+//////////////////////////////////////////////////////////
+// USER
+//////////////////////////////////////////////////////////
+
+model User {
+  id String @id @default(cuid())
+
+  ngoId String?
+
+  ngo NGO? @relation(fields: [ngoId], references: [id])
+
+  name String
+
+  email String @unique
+
+  password String?
+
+  phone String?
+
+  image String?
+
+  role Role @default(USER)
+
+  status UserStatus @default(ACTIVE)
+
+  emailVerified DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean @default(false)
+
+  deletedAt DateTime?
+
+  /////////////////////////////////////////////////////
+
+  volunteer Volunteer?
+
+  donations Donation[]
+
+  notifications Notification[]
+
+  /////////////////////////////////////////////////////
+
+  createdPrograms Program[] @relation("ProgramCreator")
+
+  createdCampaigns Campaign[] @relation("CampaignCreator")
+
+  createdEvents Event[] @relation("EventCreator")
+
+  /////////////////////////////////////////////////////
+
+  sentMessages Message[] @relation("Sender")
+
+  /////////////////////////////////////////////////////
+
+  accounts Account[]
+
+  sessions Session[]
+
+  conversationMembers ConversationMember[]
+
+  /////////////////////////////////////////////////////
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([ngoId])
+}
+
+//////////////////////////////////////////////////////////
+// AUTH.JS
+//////////////////////////////////////////////////////////
+
+model Account {
+  id String @id @default(cuid())
+
+  userId String
+
+  type String
+
+  provider String
+
+  providerAccountId String
+
+  refresh_token String? @db.Text
+
+  access_token String? @db.Text
+
+  expires_at Int?
+
+  token_type String?
+
+  scope String?
+
+  id_token String? @db.Text
+
+  session_state String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id String @id @default(cuid())
+
+  sessionToken String @unique
+
+  userId String
+
+  expires DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+
+  token String @unique
+
+  expires DateTime
+
+  @@unique([identifier, token])
+}
+
+//////////////////////////////////////////////////////////
+// NOTIFICATION
+//////////////////////////////////////////////////////////
+
+model Notification {
+  id String @id @default(cuid())
+
+  userId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+
+  message String
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+//////////////////////////////////////////////////////////
+// VOLUNTEER
+//////////////////////////////////////////////////////////
+
+model Volunteer {
+  id String @id @default(cuid())
+
+  userId String @unique
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  bio String?
+
+  skills String[]
+
+  availability String?
+
+  emergencyContact String?
+
+  joinedAt DateTime @default(now())
+
+  hoursCompleted Int @default(0)
+
+  attendancePercentage Float @default(0)
+
+  rating Float @default(0)
+
+  certificatesCount Int @default(0)
+
+  assignedPrograms VolunteerProgram[]
+
+  assignedEvents VolunteerEvent[]
+
+  attendances Attendance[]
+
+  certificates Certificate[]
+}
+
+//////////////////////////////////////////////////////////
+// VOLUNTEER PROGRAM
+//////////////////////////////////////////////////////////
+
+model VolunteerProgram {
+  id String @id @default(cuid())
+
+  volunteerId String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  programId String
+
+  program Program @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  assignedBy String
+
+  assignedAt DateTime @default(now())
+
+  @@unique([volunteerId, programId])
+}
+
+//////////////////////////////////////////////////////////
+// VOLUNTEER EVENT
+//////////////////////////////////////////////////////////
+
+model VolunteerEvent {
+  id String @id @default(cuid())
+
+  volunteerId String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  eventId String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  assignedBy String
+
+  assignedAt DateTime @default(now())
+
+  attendanceMarked Boolean @default(false)
+
+  @@unique([volunteerId, eventId])
+}
+
+//////////////////////////////////////////////////////////
+// ATTENDANCE
+//////////////////////////////////////////////////////////
+
+model Attendance {
+  id String @id @default(cuid())
+
+  volunteerId String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  eventId String
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  status AttendanceStatus
+
+  checkIn DateTime?
+
+  checkOut DateTime?
+
+  remarks String?
+
+  createdAt DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+// CERTIFICATE
+//////////////////////////////////////////////////////////
+
+model Certificate {
+  id String @id @default(cuid())
+
+  volunteerId String
+
+  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+
+  title String
+
+  description String?
+
+  certificateUrl String?
+
+  issuedBy String?
+
+  issuedAt DateTime @default(now())
+
+  status CertificateStatus
+}
+
+//////////////////////////////////////////////////////////
+// PROGRAM
+//////////////////////////////////////////////////////////
+
+model Program {
+  id String @id @default(cuid())
+
+  ngoId String
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  name String
+
+  category String
+
+  description String? @db.Text
+
+  coordinator String?
+
+  manager String?
+
+  budget Decimal @db.Decimal(12, 2)
+
+  usedBudget Decimal @default(0) @db.Decimal(12, 2)
+
+  beneficiaries Int @default(0)
+
+  progress Int @default(0)
+
+  startDate DateTime
+
+  endDate DateTime?
+
+  location String?
+
+  coverImage String?
+
+  status ProgramStatus @default(UPCOMING)
+
+  createdBy String
+  creator   User   @relation("ProgramCreator", fields: [createdBy], references: [id])
+
+  updatedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  campaigns  Campaign[]
+  events     Event[]
+  volunteers VolunteerProgram[]
+
+  @@index([ngoId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// CAMPAIGN
+//////////////////////////////////////////////////////////
+
+model Campaign {
+  id String @id @default(cuid())
+
+  ngoId String
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  programId String?
+
+  program Program? @relation(fields: [programId], references: [id])
+
+  title String
+
+  description String? @db.Text
+
+  goalAmount Decimal @db.Decimal(12, 2)
+
+  raisedAmount Decimal @default(0) @db.Decimal(12, 2)
+
+  coverImage String?
+
+  startDate DateTime
+
+  endDate DateTime?
+
+  status CampaignStatus @default(DRAFT)
+
+  createdBy String
+  creator   User   @relation("CampaignCreator", fields: [createdBy], references: [id])
+
+  updatedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  donations Donation[]
+  events    Event[]
+
+  @@index([ngoId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// EVENT
+//////////////////////////////////////////////////////////
+
+model Event {
+  id String @id @default(cuid())
+
+  ngoId String
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  programId String?
+  program   Program? @relation(fields: [programId], references: [id])
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  title String
+
+  category String
+
+  eventType String
+
+  summary String?
+
+  description String? @db.Text
+
+  venue String?
+
+  address String?
+
+  city String?
+
+  state String?
+
+  country String?
+
+  postalCode String?
+
+  googleMapUrl String?
+
+  startDate DateTime
+
+  endDate DateTime?
+
+  registrationDeadline DateTime?
+
+  timezone String?
+
+  maxParticipants Int?
+
+  maxVolunteers Int?
+
+  minVolunteers Int?
+
+  maxGuests Int?
+
+  coverImage String?
+
+  status EventStatus @default(UPCOMING)
+
+  createdBy String
+  creator   User   @relation("EventCreator", fields: [createdBy], references: [id])
+
+  updatedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  volunteers VolunteerEvent[]
+  attendance Attendance[]
+
+  @@index([ngoId])
+  @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// DONATION
+//////////////////////////////////////////////////////////
+
+model Donation {
+  id String @id @default(cuid())
+
+  ngoId String
+  ngo   NGO    @relation(fields: [ngoId], references: [id])
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  donorName String
+
+  donorEmail String?
+
+  donorPhone String?
+
+  amount Decimal @db.Decimal(12, 2)
+
+  donationMode DonationMode
+
+  paymentMethod String?
+
+  status DonationStatus
+
+  remarks String?
+
+  ///////////////////////////////////////////////////
+  // Razorpay
+  ///////////////////////////////////////////////////
+
+  razorpayOrderId String?
+
+  razorpayPaymentId String?
+
+  razorpaySignature String?
+
+  ///////////////////////////////////////////////////
+
+  transactionId String?
+
+  receiptNumber String? @unique
+
+  receiptUrl String?
+
+  donatedByAdmin Boolean @default(false)
+
+  donatedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([ngoId])
+  @@index([status])
+  @@index([donatedAt])
+}
+
+//////////////////////////////////////////////////////////
+// CONVERSATION
+//////////////////////////////////////////////////////////
+
+model Conversation {
+  id String @id @default(cuid())
+
+  isGroup Boolean @default(false)
+
+  groupName String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  members ConversationMember[]
+
+  messages Message[]
+}
+
+//////////////////////////////////////////////////////////
+// CONVERSATION MEMBER
+//////////////////////////////////////////////////////////
+
+model ConversationMember {
+  id String @id @default(cuid())
+
+  conversationId String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([conversationId, userId])
+}
+
+//////////////////////////////////////////////////////////
+// MESSAGE
+//////////////////////////////////////////////////////////
+
+model Message {
+  id String @id @default(cuid())
+
+  conversationId String
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+
+  sender User @relation("Sender", fields: [senderId], references: [id])
+
+  type MessageType @default(TEXT)
+
+  content String?
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  attachments Attachment[]
+}
+
+//////////////////////////////////////////////////////////
+// ATTACHMENT
+//////////////////////////////////////////////////////////
+
+model Attachment {
+  id String @id @default(cuid())
+
+  messageId String
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  fileName String
+
+  fileUrl String
+
+  fileType String
+
+  fileSize Int
+
+  createdAt DateTime @default(now())
+}

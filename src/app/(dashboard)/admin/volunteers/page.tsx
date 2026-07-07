@@ -198,7 +198,6 @@ export default function VolunteersPage() {
                             <button onClick={() => {setModalType("EVENT"); setActiveDropdown(null)}} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Assign Event</button>
                             <button onClick={() => {setModalType("PROGRAM"); setActiveDropdown(null)}} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> Assign Program</button>
                             <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-[#16a34a] hover:bg-green-50 flex items-center gap-2"><FileBadge className="w-3.5 h-3.5" /> Generate Certificate</button>
-                            <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-[#3b82f6] hover:bg-blue-50 flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> Message</button>
                             <div className="h-px bg-gray-100 my-1"></div>
                             <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-red-500 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" /> Remove Volunteer</button>
                           </motion.div>
@@ -364,7 +363,7 @@ export default function VolunteersPage() {
 
               {/* Drawer Footer Actions */}
               <div className="p-4 border-t border-gray-100 bg-white shrink-0 grid grid-cols-2 gap-3">
-                <button className="py-3 bg-gray-50 border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2"><Mail className="w-4 h-4" /> Message</button>
+                <button className="py-3 bg-gray-50 border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2"><Mail className="w-4 h-4" /> Edit</button>
                 <button className="py-3 bg-red-50 text-red-500 rounded-full text-[12px] font-extrabold hover:bg-red-100 flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Remove</button>
               </div>
             </motion.div>

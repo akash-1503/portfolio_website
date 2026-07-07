@@ -3,8 +3,11 @@
 import { motion } from "framer-motion";
 import { 
   Heart, Users, Calendar, TrendingUp, Plus, 
-  Download, Activity, MapPin, MoreHorizontal 
+  Download, Activity, MapPin, MoreHorizontal,
+  MessageSquare
 } from "lucide-react";
+import Link from "next/link";
+
 
 export default function AdminDashboard() {
   return (
@@ -30,6 +33,28 @@ export default function AdminDashboard() {
           </motion.p>
         </div>
         
+        {/* --- TOP RIGHT ACTIONS --- */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-center gap-3"
+        >
+          {/* Changed from <button> to <Link> to enable navigation */}
+          <Link 
+            href="features/messages" 
+            className="relative flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 rounded-full font-bold text-[13px] text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all"
+          >
+            <MessageSquare className="w-4 h-4 text-gray-400" />
+            Messages
+            
+            {/* Pulsing Notification Badge */}
+            <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f97316] opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-[#f97316] border-2 border-white"></span>
+            </span>
+          </Link>
+        </motion.div>
       </div>
 
       {/* --- KPI CARDS --- */}
@@ -98,7 +123,7 @@ export default function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* Card 4: Events */}
+        {/* Card 4: Total Users */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -107,12 +132,12 @@ export default function AdminDashboard() {
         >
           <div className="flex items-center justify-between">
             <div className="p-3 bg-orange-50 text-[#f97316] rounded-[1rem] group-hover:scale-110 group-hover:bg-[#f97316] group-hover:text-white transition-all duration-300">
-              <Calendar className="w-6 h-6" />
+              <Users className="w-6 h-6 fill-current" />
             </div>
           </div>
           <div>
             <h3 className="text-3xl font-extrabold text-gray-900">42</h3>
-            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Upcoming Events</p>
+            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Users</p>
           </div>
         </motion.div>
       </div>

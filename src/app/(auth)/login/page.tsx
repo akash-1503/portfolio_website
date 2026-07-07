@@ -4,26 +4,39 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Lock } from "lucide-react";
+import { Loader2, Mail, Lock, Info } from "lucide-react";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState(""); // Track the user's email
   const router = useRouter();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
+    
+    // Simulate API call and Role-Based Routing
     setTimeout(() => {
       setIsLoading(false);
-      router.push("/admin");
+      
+      const lowerEmail = email.toLowerCase();
+      
+      // Smart Routing Logic based on Email
+      if (lowerEmail.includes("admin")) {
+        router.push("/admin");
+      } else if (lowerEmail.includes("volunteer")) {
+        router.push("/volunteer");
+      } else {
+        // Default fallback for regular users/donors
+        router.push("/user");
+      }
     }, 1500);
   };
 
   return (
-    <div className="flex-1 bg-[#fafafa] flex items-center justify-center relative overflow-hidden px-4 py-12">
+    <div className="flex-1 bg-[#fafafa] flex items-center justify-center relative overflow-hidden px-4 py-12 min-h-screen">
       
-      {/* --- NEW THEME DESIGN: Glowing Orbs & Diagonal Uplift --- */}
+      {/* --- THEME DESIGN: Glowing Orbs & Diagonal Uplift --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
         
         {/* Soft Glowing Ambient Orbs */}
@@ -105,6 +118,8 @@ export default function LoginPage() {
               <input 
                 type="email" 
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
                 className="w-full bg-white/60 border border-gray-200 rounded-[1.2rem] py-3.5 pl-12 pr-4 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-white"
               />
@@ -158,6 +173,14 @@ export default function LoginPage() {
             <span className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
           </motion.button>
         </form>
+
+        {/* --- DEV HELPER TEXT (Remove in Production) --- */}
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
+          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] font-medium text-blue-700 leading-tight">
+            <strong>Testing Routes:</strong> Use an email containing <code className="bg-white px-1 py-0.5 rounded font-bold">admin</code> to go to Admin, <code className="bg-white px-1 py-0.5 rounded font-bold">volunteer</code> to go to Volunteer. Anything else goes to User.
+          </p>
+        </div>
 
         {/* Divider */}
         <div className="flex items-center gap-4 my-8">
