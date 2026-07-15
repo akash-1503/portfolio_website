@@ -4,35 +4,63 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, Mail, Lock, Info } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react"; // Removed Info icon
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [email, setEmail] = useState(""); // Track the user's email
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate API call and Role-Based Routing
-    setTimeout(() => {
+    setError("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        setError(data.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Stop loading before redirecting
       setIsLoading(false);
+
+      // Role-based Redirect Logic
+      const role = data.user?.role;
       
-      const lowerEmail = email.toLowerCase();
-      
-      // Smart Routing Logic based on Email
-      if (lowerEmail.includes("admin")) {
+      if (role === "SUPER_ADMIN") {
+        router.push("/super-admin");
+      } else if (role === "ADMIN") {
         router.push("/admin");
-      } else if (lowerEmail.includes("volunteer")) {
+      } else if (role === "VOLUNTEER") {
         router.push("/volunteer");
       } else {
-        // Default fallback for regular users/donors
         router.push("/user");
       }
-    }, 1500);
-  };
 
+    } catch (error) {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
+  }; // handleLogin ends here
+
+  // The component's JSX return begins here
   return (
     <div className="flex-1 bg-[#fafafa] flex items-center justify-center relative overflow-hidden px-4 py-12 min-h-screen">
       
@@ -137,8 +165,10 @@ export default function LoginPage() {
             <div className="relative group">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
               <input 
-                type="password" 
+                type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 className="w-full bg-white/60 border border-gray-200 rounded-[1.2rem] py-3.5 pl-12 pr-4 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-white"
               />
@@ -157,7 +187,14 @@ export default function LoginPage() {
               <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Remember me for 30 days</span>
             </label>
           </div>
-
+          
+          {/* Error Message Display */}
+          {error && (
+            <p className="text-red-500 text-sm font-medium mt-2">
+              {error}
+            </p>
+          )}
+          
           {/* Login Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -173,14 +210,6 @@ export default function LoginPage() {
             <span className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
           </motion.button>
         </form>
-
-        {/* --- DEV HELPER TEXT (Remove in Production) --- */}
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
-          <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-          <p className="text-[11px] font-medium text-blue-700 leading-tight">
-            <strong>Testing Routes:</strong> Use an email containing <code className="bg-white px-1 py-0.5 rounded font-bold">admin</code> to go to Admin, <code className="bg-white px-1 py-0.5 rounded font-bold">volunteer</code> to go to Volunteer. Anything else goes to User.
-          </p>
-        </div>
 
         {/* Divider */}
         <div className="flex items-center gap-4 my-8">

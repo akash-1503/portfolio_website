@@ -24,7 +24,7 @@ const initialVolunteers = [
     id: "VOL-001", name: "Rahul Sharma", email: "rahul@example.com", phone: "+91 9876543210", 
     address: "123 Green Ave, New Delhi, India", joinedDate: "15 Jan 2025",
     skills: ["Teaching", "Photography", "Medical Support", "Event Management", "Fundraising"], 
-    program: "Education Program", event: "Blood Donation Camp", hours: 125, attendance: "95%", status: "Active", availability: "Weekends", image: "R",
+    program: "Education Program", event: "Blood Donation Camp", hours: 125, attendance: "95%",  availability: "Weekends", image: "R",
     attendanceBreakdown: { present: 95, absent: 3, late: 2 },
     assignedPrograms: ["Education Program", "Women's Empowerment"],
     assignedEvents: ["Blood Donation Camp", "Tree Plantation Drive", "Food Distribution"],
@@ -42,7 +42,7 @@ const initialVolunteers = [
   { 
     id: "VOL-002", name: "Priya Patel", email: "priya@example.com", phone: "+91 9876543211", 
     address: "45 River Rd, Mumbai, India", joinedDate: "10 Mar 2025",
-    skills: ["Teaching", "Art"], program: "Education First", event: "None", hours: 45, attendance: "85%", status: "Active", availability: "Weekdays", image: "P",
+    skills: ["Teaching", "Art"], program: "Education First", event: "None", hours: 45, attendance: "85%",availability: "Weekdays", image: "P",
     attendanceBreakdown: { present: 85, absent: 10, late: 5 },
     assignedPrograms: ["Education First"],
     assignedEvents: [],
@@ -134,10 +134,10 @@ export default function VolunteersPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Avatar & Name</th>
-                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Skills</th>
+                
                 <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Assigned Program & Event</th>
                 <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Hours / Attd.</th>
-                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Status</th>
+                
                 <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
@@ -176,9 +176,6 @@ export default function VolunteersPage() {
                         <span className="text-[11px] font-bold text-gray-500">{vol.attendance} Attd.</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest ${vol.status === 'Active' ? 'bg-green-50 text-[#16a34a]' : 'bg-orange-50 text-[#f97316]'}`}>{vol.status}</span>
-                    </td>
                     
                     <td className="py-4 px-6 text-right relative">
                       <button 
@@ -195,7 +192,7 @@ export default function VolunteersPage() {
                             className="absolute right-10 top-10 w-48 bg-white rounded-[1.2rem] shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-gray-100 py-2 z-50 text-left"
                           >
                             <button onClick={() => openDrawer(vol)} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Eye className="w-3.5 h-3.5" /> View Profile</button>
-                            <button onClick={() => {setModalType("EVENT"); setActiveDropdown(null)}} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Assign Event</button>
+                            
                             <button onClick={() => {setModalType("PROGRAM"); setActiveDropdown(null)}} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> Assign Program</button>
                             <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-[#16a34a] hover:bg-green-50 flex items-center gap-2"><FileBadge className="w-3.5 h-3.5" /> Generate Certificate</button>
                             <div className="h-px bg-gray-100 my-1"></div>
@@ -251,27 +248,6 @@ export default function VolunteersPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                   <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                     <span className="text-[24px] font-extrabold text-gray-900">{selectedVolunteer.hours}</span>
-                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Total Hours</span>
-                   </div>
-                   <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                     <div className="flex items-center gap-1 text-[24px] font-extrabold text-[#f97316]">
-                        {selectedVolunteer.performance.rating} <Star className="w-4 h-4 fill-current" />
-                     </div>
-                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Rating</span>
-                   </div>
-                   <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                     <span className="text-[20px] font-extrabold text-gray-900">{selectedVolunteer.performance.tasksCompleted}</span>
-                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Tasks Done</span>
-                   </div>
-                   <div className="bg-white rounded-[1.5rem] p-4 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                     <span className="text-[20px] font-extrabold text-gray-900">{selectedVolunteer.performance.eventsParticipated}</span>
-                     <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Events</span>
-                   </div>
-                </div>
-
                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 mb-6">
                   <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-4">Attendance Tracker</h4>
                   <div className="grid grid-cols-3 gap-3">
@@ -283,10 +259,7 @@ export default function VolunteersPage() {
                       <span className="text-lg font-extrabold text-red-500">{selectedVolunteer.attendanceBreakdown.absent}%</span>
                       <span className="text-[10px] font-extrabold text-gray-500 uppercase">Absent</span>
                     </div>
-                    <div className="bg-orange-50 p-3 rounded-2xl flex flex-col items-center">
-                      <span className="text-lg font-extrabold text-[#f97316]">{selectedVolunteer.attendanceBreakdown.late}%</span>
-                      <span className="text-[10px] font-extrabold text-gray-500 uppercase">Late</span>
-                    </div>
+                    
                   </div>
                 </div>
 
@@ -309,7 +282,7 @@ export default function VolunteersPage() {
 
                     <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[12px] font-extrabold text-gray-900 flex items-center gap-2"><Calendar className="w-4 h-4 text-[#f97316]" /> Assigned Events</span>
+    
                         <button onClick={() => setModalType("EVENT")} className="text-[10px] font-extrabold text-[#f97316] hover:underline bg-orange-50 px-2 py-1 rounded-md">+ Assign</button>
                       </div>
                       <ul className="flex flex-col gap-2">
@@ -346,19 +319,6 @@ export default function VolunteersPage() {
                   </ul>
                 </div>
 
-                <div className="mb-6 bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-5">Volunteer Timeline</h4>
-                  <div className="relative border-l-2 border-gray-100 ml-2 flex flex-col gap-5">
-                    {selectedVolunteer.timeline.map((step, i) => (
-                      <div key={i} className="relative pl-5">
-                        <div className={`absolute -left-[9px] top-0.5 w-4 h-4 rounded-full border-4 border-white shadow-sm ${i === 0 ? 'bg-[#16a34a]' : 'bg-gray-300'}`}></div>
-                        <p className={`text-[12px] font-extrabold ${i === 0 ? 'text-gray-900' : 'text-gray-600'}`}>{step.event}</p>
-                        <span className="text-[10px] font-bold text-gray-400 block mt-0.5">{step.date}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
               </div>
 
               {/* Drawer Footer Actions */}
@@ -368,105 +328,6 @@ export default function VolunteersPage() {
               </div>
             </motion.div>
           </>
-        )}
-      </AnimatePresence>
-
-      {/* --- MODALS (Assign Program / Assign Event) --- */}
-      <AnimatePresence>
-        {modalType && (
-          <div className="fixed top-[73px] inset-x-0 bottom-0 z-[120] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModalType(null)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg max-h-full bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100 flex flex-col z-[121] overflow-y-auto custom-scrollbar"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                  {modalType === "PROGRAM" ? "Assign to Program" : "Assign to Event"}
-                </h2>
-                <button onClick={() => setModalType(null)} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-
-              <div className="flex flex-col gap-4 mb-8">
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Select Volunteer</label>
-                  <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none">
-                    {selectedVolunteer ? <option>{selectedVolunteer.name}</option> : <option>Select a Volunteer...</option>}
-                    {!selectedVolunteer && initialVolunteers.map(v => <option key={v.id}>{v.name}</option>)}
-                  </select>
-                </div>
-
-                {modalType === "PROGRAM" ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Select Program</label>
-                      <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none">
-                        <option>Education Initiative</option>
-                        <option>Health Mission</option>
-                        <option>Women's Empowerment</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Role</label>
-                      <input type="text" placeholder="e.g. Lead Instructor" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Start Date</label>
-                        <input type="date" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date</label>
-                        <input type="date" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Select Event</label>
-                      <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none">
-                        <option>Blood Donation Camp</option>
-                        <option>Tree Plantation Drive</option>
-                        <option>Food Distribution</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Assign Task</label>
-                      <select className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none">
-                        <option>Registration Desk</option>
-                        <option>Photography</option>
-                        <option>Food Distribution</option>
-                        <option>Medical Support</option>
-                        <option>Cleaning</option>
-                        <option>Logistics</option>
-                        <option>Transport</option>
-                        <option>Crowd Management</option>
-                        <option>Social Media</option>
-                        <option>Fundraising</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Reporting Time</label>
-                      <input type="time" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Coordinator</label>
-                      <input type="text" placeholder="Coordinator Name" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button onClick={() => setModalType(null)} className="px-6 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">Cancel</button>
-                <button className={`px-8 py-3.5 rounded-full font-bold text-[13px] text-white transition-all flex items-center gap-2 ${modalType === "PROGRAM" ? 'bg-[#16A34A] hover:bg-[#15803d] shadow-green-500/25' : 'bg-[#f97316] hover:bg-[#ea580c] shadow-orange-500/25'} shadow-lg`}>
-                  <CheckCircle className="w-4 h-4" /> Save Assignment
-                </button>
-              </div>
-            </motion.div>
-          </div>
         )}
       </AnimatePresence>
 

@@ -89,9 +89,7 @@ model NGO {
   phone String?
 
   website String?
-
-  logo String?
-
+  
   address String?
 
   city String?

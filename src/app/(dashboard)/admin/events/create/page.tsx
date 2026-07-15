@@ -6,7 +6,7 @@ import Link from "next/link";
 import { 
   Calendar, MapPin, Users, DollarSign, Image as ImageIcon, 
   Settings, UserCheck, Shield, ChevronLeft, UploadCloud, 
-  CheckCircle2, Info, Building2, ClipboardList
+  CheckCircle2, Info, Building2, ClipboardList, Target
 } from "lucide-react";
 
 // --- DUMMY DATA FOR DROPDOWNS ---
@@ -46,6 +46,7 @@ const SectionCard = ({ title, icon: Icon, children, delay }: { title: string, ic
 
 export default function CreateEventPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recordType, setRecordType] = useState<"Event" | "Campaign">("Event");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,10 +76,10 @@ export default function CreateEventPage() {
           <ChevronLeft className="w-4 h-4" /> Back to page
         </Link>
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-3xl font-extrabold text-gray-900 tracking-tight">
-          Create New Event & Campaign
+          Create New {recordType}
         </motion.h1>
         <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-[13px] font-bold text-gray-400">
-          Complete the form below to publish a new event or campaign to the platform.
+          Complete the form below to publish a new {recordType.toLowerCase()} to the platform.
         </motion.p>
       </div>
 
@@ -88,21 +89,50 @@ export default function CreateEventPage() {
         <div className="lg:col-span-2">
           
           {/* Basic Information */}
-          <SectionCard title=" Basic Information" icon={Info} delay={0.2}>
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Event Name *</label>
-              <input type="text" required placeholder="e.g., Annual Tree Plantation Drive" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50" />
+          <SectionCard title="Basic Information" icon={Info} delay={0.2}>
+            
+            {/* EVENT VS CAMPAIGN TOGGLE */}
+            <div className="flex gap-4 mb-2">
+              <label 
+                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 p-4 rounded-[1.2rem] border-2 cursor-pointer transition-all ${
+                  recordType === "Event" 
+                  ? "border-[#16a34a] bg-green-50 text-[#16a34a] shadow-sm" 
+                  : "border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100"
+                }`}
+              >
+                <input type="radio" name="recordType" value="Event" checked={recordType === "Event"} onChange={() => setRecordType("Event")} className="hidden" />
+                <Calendar className="w-5 h-5" />
+                <span className="font-extrabold text-sm tracking-wide">Event</span>
+              </label>
+              
+              <label 
+                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 p-4 rounded-[1.2rem] border-2 cursor-pointer transition-all ${
+                  recordType === "Campaign" 
+                  ? "border-[#f97316] bg-orange-50 text-[#f97316] shadow-sm" 
+                  : "border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100"
+                }`}
+              >
+                <input type="radio" name="recordType" value="Campaign" checked={recordType === "Campaign"} onChange={() => setRecordType("Campaign")} className="hidden" />
+                <Target className="w-5 h-5" />
+                <span className="font-extrabold text-sm tracking-wide">Campaign</span>
+              </label>
             </div>
+
+            <div className="space-y-2">
+              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{recordType} Name *</label>
+              <input type="text" required placeholder={`e.g., Annual Tree Plantation ${recordType}`} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50" />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Event Category *</label>
+                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{recordType} Category *</label>
                 <select required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all cursor-pointer hover:bg-gray-50 appearance-none">
                   <option value="">Select Category</option>
                   {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Event Type *</label>
+                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{recordType} Type *</label>
                 <select required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all cursor-pointer hover:bg-gray-50 appearance-none">
                   <option value="public">Public (Open to All)</option>
                   <option value="private">Private (Invite Only)</option>
@@ -110,13 +140,15 @@ export default function CreateEventPage() {
                 </select>
               </div>
             </div>
+            
             <div className="space-y-2">
               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Short Summary *</label>
               <textarea required rows={2} placeholder="A brief 1-2 sentence description..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
             </div>
+            
             <div className="space-y-2">
               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Detailed Description *</label>
-              <textarea required rows={5} placeholder="Full event details, agenda, and expectations..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
+              <textarea required rows={5} placeholder={`Full ${recordType.toLowerCase()} details, agenda, and expectations...`} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
             </div>
           </SectionCard>
 
@@ -125,19 +157,19 @@ export default function CreateEventPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Start Date & Time</label>
-                <input type="datetime-local" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50" />
+                <input type="datetime-local" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date & Time</label>
-                <input type="datetime-local" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50" />
+                <input type="datetime-local" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Registration Deadline</label>
-                <input type="date" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50" />
+                <input type="date" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
               </div>
               <div className="space-y-2">
                 <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Timezone</label>
-                <select className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none">
+                <select className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none text-gray-700">
                   <option>Asia/Kolkata (IST)</option>
                   <option>UTC (GMT)</option>
                 </select>
@@ -175,7 +207,7 @@ export default function CreateEventPage() {
             </div>
           </SectionCard>
 
-          {/*  Capacity & Volunteers */}
+          {/* Capacity & Volunteers */}
           <SectionCard title="Volunteers & Capacity" icon={Users} delay={0.5}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 border-b border-gray-100 pb-8">
               {[
@@ -225,12 +257,12 @@ export default function CreateEventPage() {
           </SectionCard>
 
           {/* Media Uploads */}
-          <SectionCard title=" Media & Assets" icon={ImageIcon} delay={0.7}>
+          <SectionCard title="Media & Assets" icon={ImageIcon} delay={0.7}>
             <div className="border-2 border-dashed border-gray-300 rounded-[2rem] p-10 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-green-50/50 hover:border-[#16a34a]/50 transition-colors cursor-pointer group">
               <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <UploadCloud className="w-8 h-8 text-[#16a34a]" />
               </div>
-              <h4 className="text-[15px] font-extrabold text-gray-900">Upload Event Banner</h4>
+              <h4 className="text-[15px] font-extrabold text-gray-900">Upload {recordType} Banner</h4>
               <p className="text-[12px] font-bold text-gray-400 mt-1 mb-4">Drag and drop, or click to browse (1920x1080px recommended)</p>
               <button type="button" className="px-6 py-2.5 bg-white border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 shadow-sm group-hover:border-[#16a34a] group-hover:text-[#16a34a] transition-colors">
                 Browse Files
@@ -312,7 +344,7 @@ export default function CreateEventPage() {
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">Publishing...</span>
                   ) : (
-                    <><CheckCircle2 className="w-4 h-4" /> Publish Event</>
+                    <><CheckCircle2 className="w-4 h-4" /> Publish {recordType}</>
                   )}
                 </button>
               </div>

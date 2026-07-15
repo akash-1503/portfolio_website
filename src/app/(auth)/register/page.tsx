@@ -2,19 +2,76 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Loader2, User, Mail, Phone, Lock, Building2, } from "lucide-react";
+import { Loader2, User, Mail, Phone, Lock, Building2 } from "lucide-react";
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState("volunteer");
+  
+  // Form States
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Feedback States
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  
+  const router = useRouter();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    setError("");
+    setSuccess("");
+
+    // Step 6: Validate Passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       setIsLoading(false);
-    }, 1500);
+      return;
+    }
+
+    try {
+      // Step 7: POST to Backend
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          phone,
+        }),
+      });
+
+      const data = await response.json();
+
+      // Step 8: Handle Error
+      if (!data.success) {
+        setError(data.message || "Registration failed");
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 9: Handle Success
+      setSuccess("Registration Successful! Redirecting to login...");
+      setIsLoading(false);
+      
+      // Wait briefly so user sees the success message, then redirect
+      setTimeout(() => {
+        router.push("/login");
+      }, 1500);
+
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -94,14 +151,20 @@ export default function RegisterPage() {
           {/* Scrollable Form Container */}
           <div className="flex flex-col gap-6 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar pb-4">
             
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Full Name */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Full Name</label>
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="text" required placeholder="John Doe" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
+                  <input 
+                    type="text" 
+                    required 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" 
+                  />
                 </div>
               </div>
 
@@ -110,7 +173,14 @@ export default function RegisterPage() {
                 <label className="text-sm font-bold text-gray-700">Email Address</label>
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="email" required placeholder="name@example.com" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
+                  <input 
+                    type="email" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@example.com" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" 
+                  />
                 </div>
               </div>
             </div>
@@ -121,27 +191,32 @@ export default function RegisterPage() {
                 <label className="text-sm font-bold text-gray-700">Phone</label>
                 <div className="relative group">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="tel" placeholder="+1 234 567 890" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
+                  <input 
+                    type="tel" 
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 XXXXX XXXXX" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" 
+                  />
                 </div>
               </div>
               
-              {/* Organization */}
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700">Organization (Optional)</label>
-                <div className="relative group">
-                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="text" placeholder="Company / NGO" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
-                </div>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 gap-5">
               {/* Password */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Password</label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="password" required placeholder="••••••••" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
+                  <input 
+                    type="password" 
+                    required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" 
+                  />
                 </div>
               </div>
 
@@ -150,18 +225,33 @@ export default function RegisterPage() {
                 <label className="text-sm font-bold text-gray-700">Confirm Password</label>
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
-                  <input type="password" required placeholder="••••••••" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
+                  <input 
+                    type="password" 
+                    required 
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••" 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 pl-11 pr-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" 
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Location (Simplified) */}
+            {/* Location (Simplified - UI Only) */}
             <div className="grid grid-cols-3 gap-3">
               <input type="text" placeholder="Country" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="State" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="City" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
             </div>
           </div>
+
+          {/* Error and Success Messages */}
+          {(error || success) && (
+            <div className="text-center">
+              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+              {success && <p className="text-green-600 text-sm font-medium">{success}</p>}
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-2">

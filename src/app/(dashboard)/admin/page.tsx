@@ -7,9 +7,39 @@ import {
   MessageSquare
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 
 export default function AdminDashboard() {
+const [dashboard, setDashboard] = useState<any>(null);
+
+const [loading, setLoading] = useState(true);
+
+const [error, setError] = useState("");
+
+useEffect(() => {
+  async function loadDashboard() {
+    try {
+      const response = await fetch("/api/admin/dashboard");
+
+      if (!response.ok) {
+        throw new Error("Failed to load dashboard");
+      }
+
+      const result = await response.json();
+
+      setDashboard(result);
+    } catch (err) {
+      console.error(err);
+      setError("Unable to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadDashboard();
+}, []);
+
   return (
     <div className="flex flex-col">
       
@@ -76,7 +106,11 @@ export default function AdminDashboard() {
             </span>
           </div>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900">₹15,28,450</h3>
+            <h3 className="text-3xl font-extrabold text-gray-900">
+  {loading
+    ? "Loading..."
+    : `₹${Number(dashboard?.stats?.totalDonations ?? 0).toLocaleString()}`}
+</h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Donations</p>
           </div>
         </motion.div>
@@ -97,7 +131,11 @@ export default function AdminDashboard() {
             </span>
           </div>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900">520</h3>
+           <h3 className="text-3xl font-extrabold text-gray-900">
+  {loading
+    ? "Loading..."
+    : dashboard?.stats?.totalVolunteers ?? 0}
+</h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Active Volunteers</p>
           </div>
         </motion.div>
@@ -118,7 +156,11 @@ export default function AdminDashboard() {
             </span>
           </div>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900">18</h3>
+            <h3 className="text-3xl font-extrabold text-gray-900">
+  {loading
+    ? "Loading..."
+    : dashboard?.stats?.totalCampaigns ?? 0}
+</h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Active Campaigns</p>
           </div>
         </motion.div>
@@ -136,7 +178,11 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div>
-            <h3 className="text-3xl font-extrabold text-gray-900">42</h3>
+       <h3 className="text-3xl font-extrabold text-gray-900">
+  {loading
+    ? "Loading..."
+    : dashboard?.stats?.totalUsers ?? 0}
+</h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Users</p>
           </div>
         </motion.div>
