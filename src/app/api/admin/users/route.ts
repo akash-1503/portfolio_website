@@ -195,25 +195,105 @@ if (
     newRole = Role.USER;
 }
 
-const updatedUser = await prisma.user.update({
-    where: {
-        id: userId,
-    },
-    data: {
-        role: newRole,
-    },
-    select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        image: true,
-        role: true,
-        status: true,
-        createdAt: true,
-    },
-});
+let updatedUser;
 
+if (action === "MAKE_VOLUNTEER") {
+
+    updatedUser = await prisma.$transaction(async (tx) => {
+
+        // Update User Role
+        const user = await tx.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                role: Role.VOLUNTEER,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                image: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            },
+        });
+
+        // Create Volunteer Profile if it doesn't exist
+        await tx.volunteer.upsert({
+            where: {
+                userId: userId,
+            },
+            update: {},
+            create: {
+                userId: userId,
+                bio: "",
+                skills: [],
+                availability: "",
+                emergencyContact: "",
+                attendancePercentage: 0,
+                hoursCompleted: 0,
+                certificatesCount: 0,
+                rating: 0,
+            },
+        });
+
+        return user;
+    });
+
+} else {
+
+    updatedUser = await prisma.$transaction(async (tx) => {
+
+        // Remove all assigned programs
+        const volunteer = await tx.volunteer.findUnique({
+            where: {
+                userId: userId,
+            },
+        });
+
+        if (volunteer) {
+
+            await tx.volunteerProgram.deleteMany({
+                where: {
+                    volunteerId: volunteer.id,
+                },
+            });
+
+            await tx.volunteer.delete({
+                where: {
+                    id: volunteer.id,
+                },
+            });
+
+        }
+
+        const user = await tx.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                role: Role.USER,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phone: true,
+                image: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            },
+        });
+
+        return user;
+
+    });
+
+}
 
     // Return Success
    return NextResponse.json(

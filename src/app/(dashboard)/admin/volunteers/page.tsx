@@ -1,83 +1,261 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Search, Filter, Plus, Users, UserCheck, Calendar, BookOpen, 
   Hourglass, Trophy, Eye, Mail, Trash2, X, FileBadge, CheckCircle, 
   Clock, MapPin, ChevronDown, MoreVertical, Award, Phone, 
-  Star, Download, Target
+  Star, Download, Target, Edit3, AlertCircle, CheckCircle2
 } from "lucide-react";
 
-// --- DUMMY DATA ---
-const kpiData = [
-  { title: "Total Volunteers", value: "325", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
-  { title: "Active Volunteers", value: "280", icon: UserCheck, color: "text-[#16a34a]", bg: "bg-green-50" },
-  { title: "Assigned to Events", value: "85", icon: Calendar, color: "text-[#f97316]", bg: "bg-orange-50" },
-  { title: "Assigned to Programs", value: "125", icon: BookOpen, color: "text-purple-500", bg: "bg-purple-50" },
-  { title: "Pending Assignments", value: "18", icon: Hourglass, color: "text-rose-500", bg: "bg-rose-50" },
-  { title: "Top Volunteer", value: "Rahul Sharma", icon: Trophy, color: "text-yellow-600", bg: "bg-yellow-50" },
-];
+interface Program {
+    id: string;
+    name: string;
+}
 
-const initialVolunteers = [
-  { 
-    id: "VOL-001", name: "Rahul Sharma", email: "rahul@example.com", phone: "+91 9876543210", 
-    address: "123 Green Ave, New Delhi, India", joinedDate: "15 Jan 2025",
-    skills: ["Teaching", "Photography", "Medical Support", "Event Management", "Fundraising"], 
-    program: "Education Program", event: "Blood Donation Camp", hours: 125, attendance: "95%",  availability: "Weekends", image: "R",
-    attendanceBreakdown: { present: 95, absent: 3, late: 2 },
-    assignedPrograms: ["Education Program", "Women's Empowerment"],
-    assignedEvents: ["Blood Donation Camp", "Tree Plantation Drive", "Food Distribution"],
-    certificates: ["Participation Certificate", "Volunteer Appreciation", "Best Volunteer Award"],
-    performance: { tasksCompleted: 45, eventsParticipated: 12, programsSupported: 3, avgAttendance: "95%", rating: 4.9 },
-    notes: ["Excellent volunteer.", "Very punctual.", "Good communication skills."],
-    timeline: [
-      { event: "Received Best Volunteer Award", date: "05 Dec 2025" },
-      { event: "Completed Tree Plantation", date: "12 Aug 2025" },
-      { event: "Completed Blood Donation Camp", date: "10 Mar 2025" },
-      { event: "Assigned Education Program", date: "20 Feb 2025" },
-      { event: "Joined NGO", date: "15 Jan 2025" }
-    ]
-  },
-  { 
-    id: "VOL-002", name: "Priya Patel", email: "priya@example.com", phone: "+91 9876543211", 
-    address: "45 River Rd, Mumbai, India", joinedDate: "10 Mar 2025",
-    skills: ["Teaching", "Art"], program: "Education First", event: "None", hours: 45, attendance: "85%",availability: "Weekdays", image: "P",
-    attendanceBreakdown: { present: 85, absent: 10, late: 5 },
-    assignedPrograms: ["Education First"],
-    assignedEvents: [],
-    certificates: ["Participation Certificate"],
-    performance: { tasksCompleted: 15, eventsParticipated: 2, programsSupported: 1, avgAttendance: "85%", rating: 4.2 },
-    notes: ["Great with children.", "Needs to improve punctuality."],
-    timeline: [
-      { event: "Assigned Education First", date: "15 Mar 2025" },
-      { event: "Joined NGO", date: "10 Mar 2025" }
-    ]
-  }
-];
+interface Volunteer {
+    id: string;
+    name: string;
+    email: string;
+    phone?: string;
+
+    image?: string;
+
+    bio?: string;
+
+    skills: string[];
+
+    availability?: string;
+
+    emergencyContact?: string;
+
+    attendancePercentage: number;
+
+    rating?: number;
+
+    status?: string;
+
+    programs: Program[];
+}
 
 export default function VolunteersPage() {
+  // STEP 1 — Add States & Fix TypeScript Error
+const [volunteers,setVolunteers]
+=
+useState<Volunteer[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving,setSaving]
+=
+useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedVolunteer, setSelectedVolunteer] = useState<typeof initialVolunteers[0] | null>(null);
+  const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   
-  const [modalType, setModalType] = useState<"PROGRAM" | "EVENT" | null>(null);
+  // Modal States
+  const [modalType, setModalType] = useState<"PROGRAM" | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [volunteerToModify, setVolunteerToModify] = useState<Volunteer | null>(null);
 
-  const openDrawer = (volunteer: typeof initialVolunteers[0]) => {
+  // STEP 4/5/6 — Form & Selection States
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    bio: "",
+    skills: "",
+    availability: "",
+    emergencyContact: ""
+  });
+  const [selectedProgram, setSelectedProgram] = useState("");
+
+  const openDrawer = (volunteer: Volunteer) => {
     setSelectedVolunteer(volunteer);
     setActiveDropdown(null);
   };
 
   const closeDrawer = () => setSelectedVolunteer(null);
 
-  const filteredVolunteers = initialVolunteers.filter(v => 
+  const filteredVolunteers = volunteers.filter((v) => 
     v.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    v.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.phone.includes(searchQuery)
-  );
+    (v.email && v.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (v.phone && v.phone.includes(searchQuery))
+  );  
+
+  // --- API HANDLERS ---
+
+  async function fetchVolunteers() {
+    setLoading(true);
+    try {
+        const res = await fetch("/api/admin/volunteers");
+        const data = await res.json();
+        if (!res.ok) {
+
+throw new Error("Unable to fetch volunteers");
+
+}
+       if(data.success){
+
+    setVolunteers(data.volunteers);
+
+    setPrograms(data.programs);
+
+    return data.volunteers;
+}
+
+return [];
+
+    } catch (err) {
+       alert("Unable to load volunteers");
+return [];
+    } finally {
+        setLoading(false);
+    }
+    return [];
+  }
+
+  useEffect(() => {
+   fetchVolunteers();
+  }, []);
+
+  // STEP 5 — Edit Volunteer
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!volunteerToModify) return;
+setSaving(true);
+    try {
+      const res = await fetch("/api/admin/volunteers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "UPDATE_PROFILE",
+          volunteerId: volunteerToModify.id,
+          name: editForm.name,
+          phone: editForm.phone,
+          bio: editForm.bio,
+          skills: editForm.skills ? editForm.skills.split(",").map(s => s.trim()) : [],
+          availability: editForm.availability,
+          emergencyContact: editForm.emergencyContact
+        })
+      });
+
+      setSaving(false);
+
+      const data = await res.json();
+      console.log("PATCH Response", data);
+      if (data.success) {
+        setIsEditModalOpen(false);
+        setVolunteerToModify(null);
+       const updatedVolunteers = await fetchVolunteers();
+
+const updatedVolunteer = updatedVolunteers.find(
+    (v: Volunteer) => v.id === volunteerToModify.id
+);
+
+if(updatedVolunteer){
+    setSelectedVolunteer(updatedVolunteer);
+}
+
+      } else {
+        alert(data.message || "Failed to update");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // STEP 6 — Assign Program
+  const handleAssignSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!volunteerToModify || !selectedProgram) return;
+
+    try {
+      const res = await fetch("/api/admin/volunteers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ASSIGN_PROGRAM",
+          volunteerId: volunteerToModify.id,
+          programId: selectedProgram
+        })
+      });
+console.log("Status", res.status);
+
+      const data = await res.json();
+      if (data.success) {
+        setModalType(null);
+        setVolunteerToModify(null);
+        fetchVolunteers(); // Refresh Data
+      } else {
+        alert(data.message || "Failed to assign program");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // STEP 7 — Remove Program
+  const handleDeleteConfirm = async () => {
+    if (!volunteerToModify || !selectedProgram) return;
+
+    try {
+      const res = await fetch("/api/admin/volunteers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "REMOVE_PROGRAM",
+          volunteerId: volunteerToModify.id,
+          programId: selectedProgram
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setIsDeleteModalOpen(false);
+        setVolunteerToModify(null);
+        closeDrawer();
+        fetchVolunteers(); // Refresh Data
+      } else {
+        alert(data.message || "Failed to remove program");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // STEP 9 — Delete Volunteer
+  const handleDeleteVolunteer = async (id: string) => {
+    if (!confirm("Are you sure you want to completely delete this volunteer?")) return;
+    
+    try {
+      const res = await fetch(`/api/admin/volunteers?id=${id}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchVolunteers(); // Refresh Data
+      } else {
+        alert(data.message || "Failed to delete volunteer");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // STEP 2 — Show Loading
+  if (loading) {
+      return (
+          <div className="flex flex-col items-center justify-center h-screen bg-[#fafafa]">
+              <div className="w-16 h-16 border-4 border-[#16a34a] border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p className="text-gray-500 font-bold tracking-widest uppercase">Loading Volunteers...</p>
+          </div>
+      );
+  }
 
   return (
-    <div className="relative flex flex-col gap-8 overflow-x-hidden">
+    <div className="relative flex flex-col gap-8 overflow-x-hidden min-h-screen">
       
       {/* --- UNIQUE BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
@@ -102,17 +280,6 @@ export default function VolunteersPage() {
             </svg>
           </motion.div>
         </div>
-        <div className="absolute bottom-20 right-20 w-64 h-64 opacity-50 mix-blend-multiply">
-          <svg className="absolute w-full h-full overflow-visible" viewBox="0 0 200 200" fill="none">
-            <path d="M 0 200 Q 100 200, 200 0" stroke="#3b82f6" strokeWidth="2" strokeDasharray="4 8" strokeLinecap="round" opacity="0.4" />
-          </svg>
-          <motion.div animate={{ y: [-8, 8, -8], rotate: [-10, -5, -10] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute top-[10%] right-[10%]">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform -rotate-45 drop-shadow-md">
-              <path d="M21.5 2.5L2 10.5L9.5 13.5L21.5 2.5Z" fill="#60a5fa" opacity="0.8" />
-              <path d="M21.5 2.5L14.5 22L9.5 13.5L21.5 2.5Z" fill="#3b82f6" />
-            </svg>
-          </motion.div>
-        </div>
       </div>
 
       {/* --- PAGE HEADER --- */}
@@ -128,16 +295,15 @@ export default function VolunteersPage() {
       </div>
 
       {/* --- VOLUNTEER MAIN TABLE --- */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="relative z-10 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden mt-4">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="relative z-10 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden mt-4 pb-16">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Avatar & Name</th>
-                
-                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Assigned Program & Event</th>
-                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Hours / Attd.</th>
-                
+                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Volunteer Details</th>
+                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Program</th>
+                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Attendance</th>
+                <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Status</th>
                 <th className="py-5 px-6 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest text-right">Actions</th>
               </tr>
             </thead>
@@ -145,38 +311,67 @@ export default function VolunteersPage() {
               <AnimatePresence>
                 {filteredVolunteers.map((vol) => (
                   <motion.tr key={vol.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="hover:bg-white/60 transition-colors group">
+                    
+                    {/* Column 1: Details */}
                     <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center font-extrabold text-sm text-[#16a34a] border border-green-100 shrink-0">
-                          {vol.image}
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center font-extrabold text-lg text-[#16a34a] border border-green-200 shrink-0 shadow-sm overflow-hidden">
+                          {vol.image ? (
+                            <img src={vol.image} alt={vol.name} className="w-full h-full object-cover" />
+                          ) : (
+                            vol.name?.charAt(0)
+
+??
+
+"?"
+                          )}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-extrabold text-gray-900 text-[14px] cursor-pointer hover:text-[#16a34a] transition-colors" onClick={() => openDrawer(vol)}>{vol.name}</span>
-                          <span className="font-bold text-gray-400 text-[11px]">{vol.email}</span>
+                          <span className="font-extrabold text-gray-900 text-[15px] cursor-pointer hover:text-[#16a34a] transition-colors" onClick={() => openDrawer(vol)}>
+                            {vol.name}
+                          </span>
+                          <span className="font-bold text-gray-400 text-[11px] flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3"/> {vol.email}</span>
+                          {vol.phone && <span className="font-bold text-gray-400 text-[11px] flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3"/> {vol.phone}</span>}
                         </div>
                       </div>
                     </td>
+
+                    {/* Column 2: Assigned Program */}
                     <td className="py-4 px-6">
-                      <div className="flex gap-1.5 flex-wrap max-w-[150px]">
-                        {vol.skills.slice(0, 2).map((skill, i) => (
-                          <span key={i} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-[10px] font-extrabold tracking-wide">{skill}</span>
-                        ))}
-                        {vol.skills.length > 2 && <span className="bg-gray-50 text-gray-400 px-2 py-1 rounded-md text-[10px] font-extrabold">+{vol.skills.length - 2}</span>}
+                      <div className="flex flex-col gap-2">
+                        <span className="text-[13px] font-bold text-gray-700 flex items-center gap-2">
+                          <BookOpen className="w-3.5 h-3.5 text-[#16a34a]" /> 
+                         {vol.programs && vol.programs.length > 0 ? (
+    <div className="flex flex-col gap-1">
+        {vol.programs.map((program) => (
+            <span
+                key={program.id}
+                className="inline-flex w-fit px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold"
+            >
+                {program.name}
+            </span>
+        ))}
+    </div>
+) : (
+    "Not Assigned"
+)}
+                        </span>
                       </div>
                     </td>
+
+                    {/* Column 3: Attendance */}
                     <td className="py-4 px-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[12px] font-bold text-gray-700 flex items-center gap-1.5"><BookOpen className="w-3 h-3 text-[#16a34a]" /> {vol.program}</span>
-                        <span className="text-[12px] font-bold text-gray-700 flex items-center gap-1.5"><Calendar className="w-3 h-3 text-[#f97316]" /> {vol.event}</span>
-                      </div>
+                      <span className="text-[14px] font-extrabold text-gray-900">{vol.attendancePercentage}</span>
                     </td>
+
+                    {/* Column 4: Status */}
                     <td className="py-4 px-6">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-extrabold text-gray-900">{vol.hours} Hours</span>
-                        <span className="text-[11px] font-bold text-gray-500">{vol.attendance} Attd.</span>
-                      </div>
+                      <span className="bg-green-50 text-[#16a34a] px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest border border-green-100">
+                        {vol.status || "ACTIVE"}
+                      </span>
                     </td>
                     
+                    {/* Column 5: Actions */}
                     <td className="py-4 px-6 text-right relative">
                       <button 
                         onClick={() => setActiveDropdown(activeDropdown === vol.id ? null : vol.id)}
@@ -189,14 +384,54 @@ export default function VolunteersPage() {
                         {activeDropdown === vol.id && (
                           <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} transition={{ duration: 0.15 }}
-                            className="absolute right-10 top-10 w-48 bg-white rounded-[1.2rem] shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-gray-100 py-2 z-50 text-left"
+                            className="absolute right-10 top-10 w-48 bg-white rounded-[1.2rem] shadow-[0_10px_40px_rgb(0,0,0,0.1)] border border-gray-100 py-2 z-50 text-left overflow-hidden"
                           >
-                            <button onClick={() => openDrawer(vol)} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Eye className="w-3.5 h-3.5" /> View Profile</button>
+                            <button onClick={() => openDrawer(vol)} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                              <Eye className="w-3.5 h-3.5" /> View Profile
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setVolunteerToModify(vol); 
+                                setEditForm({
+                                  name: vol.name || "",
+                                  phone: vol.phone || "",
+                                  bio: vol.bio || "",
+                                  skills: vol.skills ? vol.skills.join(", ") : "",
+                                  availability: vol.availability || "",
+                                  emergencyContact: vol.emergencyContact || ""
+                                });
+                                setIsEditModalOpen(true); 
+                                setActiveDropdown(null);
+                              }} 
+                              className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" /> Edit Profile
+                            </button>
+                            <button onClick={() => {
+                                setVolunteerToModify(vol); 
+                                if (programs.length > 0) setSelectedProgram(programs[0].id);
+                                setModalType("PROGRAM"); 
+                                setActiveDropdown(null);
+                              }} 
+                              className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-[#16a34a] hover:bg-green-50 flex items-center gap-2"
+                            >
+                              <BookOpen className="w-3.5 h-3.5" /> Assign Program
+                            </button>
                             
-                            <button onClick={() => {setModalType("PROGRAM"); setActiveDropdown(null)}} className="w-full text-left px-4 py-2 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2"><BookOpen className="w-3.5 h-3.5" /> Assign Program</button>
-                            <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-[#16a34a] hover:bg-green-50 flex items-center gap-2"><FileBadge className="w-3.5 h-3.5" /> Generate Certificate</button>
+                            {/* Selecting program to remove if volunteer has programs assigned */}
+                            {vol.programs && vol.programs.length > 0 && vol.programs.map((p: any) => (
+                                <button key={p.id} onClick={() => {setSelectedProgram(p.id); setVolunteerToModify(vol); setIsDeleteModalOpen(true); setActiveDropdown(null);}} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-orange-500 hover:bg-orange-50 flex items-center gap-2">
+                                  <Trash2 className="w-3.5 h-3.5" /> Remove from {p.name}
+                                </button>
+                            ))}
+
                             <div className="h-px bg-gray-100 my-1"></div>
-                            <button className="w-full text-left px-4 py-2 text-[12px] font-bold text-red-500 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" /> Remove Volunteer</button>
+                            
+                            {/* DELETE VOLUNTEER ACTION */}
+                            <button onClick={() => { handleDeleteVolunteer(vol.id); setActiveDropdown(null); }} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-red-500 hover:bg-red-50 flex items-center gap-2">
+                              <Trash2 className="w-3.5 h-3.5" /> Delete Volunteer
+                            </button>
+
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -206,6 +441,13 @@ export default function VolunteersPage() {
               </AnimatePresence>
             </tbody>
           </table>
+          
+          {filteredVolunteers.length === 0 && (
+            <div className="py-20 text-center flex flex-col items-center justify-center text-gray-400">
+              <Users className="w-12 h-12 mb-4 opacity-20" />
+              <p className="text-[13px] font-bold">No volunteers found.</p>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -223,45 +465,37 @@ export default function VolunteersPage() {
                 <button onClick={closeDrawer} className="p-2 text-gray-400 hover:text-gray-900 bg-white border border-gray-200 rounded-full shadow-sm transition-all hover:bg-gray-50"><X className="w-4 h-4" /></button>
               </div>
 
+              {/* STEP 8 — Backend aligned drawer */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#fafafa]">
                 
                 <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-5 mb-6">
-                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center font-extrabold text-green-700 shadow-inner text-3xl shrink-0">
-                    {selectedVolunteer.image}
+                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center font-extrabold text-green-700 shadow-inner text-3xl shrink-0 overflow-hidden">
+                    {selectedVolunteer.image ? (
+                      <img src={selectedVolunteer.image} alt={selectedVolunteer.name} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedVolunteer.name.charAt(0)
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <h3 className="text-xl font-extrabold text-gray-900 leading-tight">{selectedVolunteer.name}</h3>
                     <p className="text-[12px] font-bold text-[#16a34a] mb-2">{selectedVolunteer.id}</p>
                     <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mb-1"><Mail className="w-3 h-3" /> {selectedVolunteer.email}</div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mb-1"><Phone className="w-3 h-3" /> {selectedVolunteer.phone}</div>
-                    <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500"><MapPin className="w-3 h-3" /> {selectedVolunteer.address}</div>
-                    <p className="text-[10px] font-extrabold text-gray-400 mt-2 uppercase tracking-widest">Joined: {selectedVolunteer.joinedDate}</p>
+                    {selectedVolunteer.phone && <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mb-1"><Phone className="w-3 h-3" /> {selectedVolunteer.phone}</div>}
+                    {selectedVolunteer.bio && <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 mt-1"><MapPin className="w-3 h-3" /> {selectedVolunteer.bio}</div>}
+                    {selectedVolunteer.availability && <p className="text-[10px] font-extrabold text-gray-400 mt-2 uppercase tracking-widest">Availability: {selectedVolunteer.availability}</p>}
                   </div>
                 </div>
 
-                <div className="mb-6">
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedVolunteer.skills.map((skill, i) => (
-                      <span key={i} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-[11px] font-extrabold tracking-wide">{skill}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 mb-6">
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-4">Attendance Tracker</h4>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-green-50 p-3 rounded-2xl flex flex-col items-center">
-                      <span className="text-lg font-extrabold text-[#16a34a]">{selectedVolunteer.attendanceBreakdown.present}%</span>
-                      <span className="text-[10px] font-extrabold text-gray-500 uppercase">Present</span>
+                {selectedVolunteer.skills && selectedVolunteer.skills.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">Skills</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedVolunteer.skills.map((skill: string, i: number) => (
+                        <span key={i} className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-[11px] font-extrabold tracking-wide">{skill}</span>
+                      ))}
                     </div>
-                    <div className="bg-red-50 p-3 rounded-2xl flex flex-col items-center">
-                      <span className="text-lg font-extrabold text-red-500">{selectedVolunteer.attendanceBreakdown.absent}%</span>
-                      <span className="text-[10px] font-extrabold text-gray-500 uppercase">Absent</span>
-                    </div>
-                    
                   </div>
-                </div>
+                )}
 
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
@@ -271,63 +505,186 @@ export default function VolunteersPage() {
                     <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-[12px] font-extrabold text-gray-900 flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#16a34a]" /> Assigned Programs</span>
-                        <button onClick={() => setModalType("PROGRAM")} className="text-[10px] font-extrabold text-[#16a34a] hover:underline bg-green-50 px-2 py-1 rounded-md">+ Assign</button>
                       </div>
                       <ul className="flex flex-col gap-2">
-                        {selectedVolunteer.assignedPrograms.length > 0 ? selectedVolunteer.assignedPrograms.map(p => (
-                          <li key={p} className="text-[12px] font-bold text-gray-600 flex items-center gap-2"><Target className="w-3 h-3 text-gray-400" /> {p}</li>
+                        {selectedVolunteer.programs && selectedVolunteer.programs.length > 0 ? selectedVolunteer.programs.map((p: any) => (
+                          <li key={p.id} className="text-[12px] font-bold text-gray-600 flex items-center gap-2"><Target className="w-3 h-3 text-gray-400" /> {p.name}</li>
                         )) : <li className="text-[11px] text-gray-400 italic">No programs assigned</li>}
-                      </ul>
-                    </div>
-
-                    <div className="bg-white p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
-                      <div className="flex items-center justify-between mb-3">
-    
-                        <button onClick={() => setModalType("EVENT")} className="text-[10px] font-extrabold text-[#f97316] hover:underline bg-orange-50 px-2 py-1 rounded-md">+ Assign</button>
-                      </div>
-                      <ul className="flex flex-col gap-2">
-                        {selectedVolunteer.assignedEvents.length > 0 ? selectedVolunteer.assignedEvents.map(e => (
-                          <li key={e} className="text-[12px] font-bold text-gray-600 flex items-center gap-2"><Target className="w-3 h-3 text-gray-400" /> {e}</li>
-                        )) : <li className="text-[11px] text-gray-400 italic">No events assigned</li>}
                       </ul>
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-6 bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-                   <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-4">Certificates</h4>
-                   <div className="flex flex-col gap-3 mb-4">
-                     {selectedVolunteer.certificates.map(cert => (
-                       <div key={cert} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
-                         <span className="text-[12px] font-bold text-gray-800 flex items-center gap-2"><Award className="w-4 h-4 text-yellow-500" /> {cert}</span>
-                         <button className="p-1.5 text-gray-400 hover:text-[#16a34a] transition-colors"><Download className="w-3.5 h-3.5" /></button>
-                       </div>
-                     ))}
-                   </div>
-                   <div className="flex gap-2">
-                     <button className="flex-1 py-2.5 bg-green-50 text-[#16a34a] rounded-full text-[11px] font-extrabold hover:bg-green-100 transition-colors">Generate</button>
-                     <button className="flex-1 py-2.5 bg-blue-50 text-blue-500 rounded-full text-[11px] font-extrabold hover:bg-blue-100 transition-colors">Email Certs</button>
-                   </div>
-                </div>
-
-                <div className="mb-6 bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
-                  <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3">Admin Notes</h4>
-                  <ul className="list-disc pl-4 flex flex-col gap-1.5">
-                    {selectedVolunteer.notes.map((note, i) => (
-                      <li key={i} className="text-[12px] font-bold text-gray-600">{note}</li>
-                    ))}
-                  </ul>
-                </div>
-
               </div>
 
-              {/* Drawer Footer Actions */}
-              <div className="p-4 border-t border-gray-100 bg-white shrink-0 grid grid-cols-2 gap-3">
-                <button className="py-3 bg-gray-50 border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2"><Mail className="w-4 h-4" /> Edit</button>
-                <button className="py-3 bg-red-50 text-red-500 rounded-full text-[12px] font-extrabold hover:bg-red-100 flex items-center justify-center gap-2"><Trash2 className="w-4 h-4" /> Remove</button>
+              <div className="p-4 border-t border-gray-100 bg-white shrink-0">
+                <button 
+                  onClick={() => {
+                    setVolunteerToModify(selectedVolunteer); 
+                    setEditForm({
+                      name: selectedVolunteer.name || "",
+                      phone: selectedVolunteer.phone || "",
+                      bio: selectedVolunteer.bio || "",
+                      skills: selectedVolunteer.skills ? selectedVolunteer.skills.join(", ") : "",
+                      availability: selectedVolunteer.availability || "",
+                      emergencyContact: selectedVolunteer.emergencyContact || ""
+                    });
+                    setIsEditModalOpen(true);
+                  }} 
+                  className="w-full py-3.5 bg-gray-50 border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 hover:bg-gray-100 flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <Edit3 className="w-4 h-4" /> Edit Profile
+                </button>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* ==================================================== */}
+      {/* --- MODAL (EDIT PROFILE) --- */}
+      {/* ==================================================== */}
+      <AnimatePresence>
+        {isEditModalOpen && volunteerToModify && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsEditModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 flex flex-col z-[121] overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                <div>
+                  <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">Edit Profile</h2>
+                  <p className="text-[13px] font-bold text-gray-400 mt-1">{volunteerToModify.name}</p>
+                </div>
+                <button onClick={() => setIsEditModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-white hover:bg-gray-50 rounded-full transition-colors border border-gray-200 shadow-sm"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-8 max-h-[65vh]">
+                <form onSubmit={handleEditSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Full Name</label>
+                    <input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Phone Number</label>
+                    <input type="text" value={editForm.phone} onChange={(e)=>setEditForm({...editForm, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Emergency Contact</label>
+                    <input type="text" value={editForm.emergencyContact} onChange={(e)=>setEditForm({...editForm, emergencyContact: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Bio / Address</label>
+                    <input type="text" value={editForm.bio} onChange={(e)=>setEditForm({...editForm, bio: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Skills (Comma Separated)</label>
+                    <input type="text" value={editForm.skills} onChange={(e)=>setEditForm({...editForm, skills: e.target.value})} placeholder="Teaching, Event Management" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Availability</label>
+                    <input type="text" value={editForm.availability} onChange={(e)=>setEditForm({...editForm, availability: e.target.value})} placeholder="e.g. Weekends, Evenings" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                  </div>
+                </form>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 flex justify-end gap-3">
+                <button onClick={() => setIsEditModalOpen(false)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors">Cancel</button>
+                <button
+    onClick={handleEditSave}
+    disabled={saving}
+    className="px-10 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#16A34A] hover:bg-[#15803d]"
+>
+                  <CheckCircle2 className="w-4 h-4" /> Save Changes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ==================================================== */}
+      {/* --- MODAL (ASSIGN PROGRAM ONLY) --- */}
+      {/* ==================================================== */}
+      <AnimatePresence>
+        {modalType === "PROGRAM" && volunteerToModify && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setModalType(null)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 flex flex-col z-[121] overflow-hidden"
+            >
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 shrink-0">
+                <div>
+                  <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
+                    Assign Program
+                  </h2>
+                  <p className="text-[13px] font-bold text-gray-400 mt-1">To {volunteerToModify.name}</p>
+                </div>
+                <button onClick={() => setModalType(null)} className="p-2 text-gray-400 hover:text-gray-900 bg-white hover:bg-gray-50 rounded-full transition-colors border border-gray-200 shadow-sm"><X className="w-5 h-5" /></button>
+              </div>
+
+              <div className="p-8">
+                <form onSubmit={handleAssignSave} className="flex flex-col gap-6">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Select Program</label>
+                    <select value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none cursor-pointer appearance-none">
+                      {programs.map(program => (
+                        <option key={program.id} value={program.id}>
+                          {program.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </form>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 flex justify-end gap-3">
+                <button onClick={() => setModalType(null)} className="px-8 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors">Cancel</button>
+                <button type="submit" onClick={handleAssignSave} className="px-10 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#16A34A] hover:bg-[#15803d] shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Assign
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ==================================================== */}
+      {/* --- CONFIRMATION MODAL (REMOVE FROM PROGRAM) --- */}
+      {/* ==================================================== */}
+      <AnimatePresence>
+        {isDeleteModalOpen && volunteerToModify && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsDeleteModalOpen(false)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-sm bg-white rounded-[2rem] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] border border-gray-100 flex flex-col items-center text-center z-[121]"
+            >
+              <button onClick={() => setIsDeleteModalOpen(false)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5 bg-red-50 text-red-500">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-xl font-extrabold text-gray-900 mb-2">Remove from Program?</h3>
+              <p className="text-[13px] font-bold text-gray-500 mb-8 leading-relaxed">
+                Are you sure you want to remove <strong className="text-gray-800">{volunteerToModify.name}</strong> from their assigned program?
+              </p>
+
+              <div className="w-full flex gap-3">
+                <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-3.5 rounded-full font-bold text-[13px] text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors">
+                  Cancel
+                </button>
+                <button onClick={handleDeleteConfirm} className="flex-1 py-3.5 rounded-full font-bold text-[13px] text-white bg-red-500 hover:bg-red-600 shadow-[0_8px_20px_rgba(239,68,68,0.3)] transition-all">
+                  Yes, Remove
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

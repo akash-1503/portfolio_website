@@ -8,26 +8,70 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
+// --- TYPESCRIPT INTERFACES ---
+interface DashboardStats {
+  totalDonations: number;
+  totalUsers: number;
+  totalVolunteers: number;
+  totalPrograms: number;
+}
+
+interface Donation {
+  name: string;
+  campaign: string;
+  amount: string;
+  date: string;
+}
+
+interface Activity {
+  id: string;
+  type: "EVENT" | "CAMPAIGN";
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+  color?: string;
+}
+
+interface DashboardResponse {
+  success?: boolean;
+  stats: DashboardStats;
+  monthlyDonations: number[];
+  recentDonations: Donation[];
+  activities: Activity[];
+}
 
 export default function AdminDashboard() {
-const [dashboard, setDashboard] = useState<any>(null);
+  const router = useRouter();
+  
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-const [loading, setLoading] = useState(true);
-
-const [error, setError] = useState("");
-
-useEffect(() => {
-  async function loadDashboard() {
+  // Extracted to a reusable function so it can be called after updates
+  const loadDashboard = async () => {
+    setLoading(true);
+    setError("");
+    
     try {
-      const response = await fetch("/api/admin/dashboard");
+      const response = await fetch("/api/admin/dashboard", {
+        cache: "no-store", // Prevents browser caching
+      });
+
+      // Handle Authentication explicitly
+      if (response.status === 401) {
+        router.replace("/login");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to load dashboard");
       }
 
       const result = await response.json();
-
       setDashboard(result);
     } catch (err) {
       console.error(err);
@@ -35,10 +79,28 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  loadDashboard();
-}, []);
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  // --- ERROR UI ---
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen">
+        <div className="p-10 text-center bg-red-50 rounded-3xl border border-red-100">
+          <p className="text-red-600 font-extrabold text-lg">{error}</p>
+          <button 
+            onClick={loadDashboard}
+            className="mt-4 px-6 py-2 bg-white border border-red-200 text-red-500 rounded-full font-bold text-[13px] hover:bg-red-100 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col">
@@ -70,7 +132,6 @@ useEffect(() => {
           transition={{ delay: 0.2 }}
           className="flex items-center gap-3"
         >
-          {/* Changed from <button> to <Link> to enable navigation */}
           <Link 
             href="features/messages" 
             className="relative flex items-center gap-2 px-5 py-3 bg-white border border-gray-200 rounded-full font-bold text-[13px] text-gray-600 shadow-sm hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-all"
@@ -107,10 +168,10 @@ useEffect(() => {
           </div>
           <div>
             <h3 className="text-3xl font-extrabold text-gray-900">
-  {loading
-    ? "Loading..."
-    : `₹${Number(dashboard?.stats?.totalDonations ?? 0).toLocaleString()}`}
-</h3>
+              {loading
+                ? "Loading..."
+                : `₹${Number(dashboard?.stats?.totalDonations ?? 0).toLocaleString()}`}
+            </h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Donations</p>
           </div>
         </motion.div>
@@ -131,16 +192,16 @@ useEffect(() => {
             </span>
           </div>
           <div>
-           <h3 className="text-3xl font-extrabold text-gray-900">
-  {loading
-    ? "Loading..."
-    : dashboard?.stats?.totalVolunteers ?? 0}
-</h3>
+            <h3 className="text-3xl font-extrabold text-gray-900">
+              {loading
+                ? "Loading..."
+                : dashboard?.stats?.totalVolunteers ?? 0}
+            </h3>
             <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Active Volunteers</p>
           </div>
         </motion.div>
 
-        {/* Card 3: Campaigns */}
+        {/* Card 3: Programs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -157,11 +218,11 @@ useEffect(() => {
           </div>
           <div>
             <h3 className="text-3xl font-extrabold text-gray-900">
-  {loading
-    ? "Loading..."
-    : dashboard?.stats?.totalCampaigns ?? 0}
-</h3>
-            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Active Campaigns</p>
+              {loading
+                ? "Loading..."
+                : dashboard?.stats?.totalPrograms ?? 0}
+            </h3>
+            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Active Programs</p>
           </div>
         </motion.div>
 
@@ -178,12 +239,12 @@ useEffect(() => {
             </div>
           </div>
           <div>
-       <h3 className="text-3xl font-extrabold text-gray-900">
-  {loading
-    ? "Loading..."
-    : dashboard?.stats?.totalUsers ?? 0}
-</h3>
-            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Users</p>
+            <h3 className="text-3xl font-extrabold text-gray-900">
+              {loading
+                ? "Loading..."
+                : dashboard?.stats?.totalUsers ?? 0}
+            </h3>
+            <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wide">Total Members</p>
           </div>
         </motion.div>
       </div>
@@ -214,7 +275,7 @@ useEffect(() => {
             
             {/* Themed CSS Bar Chart */}
             <div className="h-64 flex items-end justify-between gap-2 md:gap-4 mt-6">
-              {[40, 70, 45, 90, 65, 85, 100, 60, 50, 80, 55, 75].map((height, i) => (
+              {(dashboard?.monthlyDonations?.length === 12 ? dashboard.monthlyDonations : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).map((height: number, i: number) => (
                 <div key={i} className="flex flex-col items-center gap-3 flex-1 group cursor-pointer">
                   <div className="w-full relative bg-gray-50 rounded-t-[1rem] h-full flex items-end overflow-hidden">
                     <div 
@@ -254,26 +315,27 @@ useEffect(() => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {[
-                    { name: "Michael Scott", campaign: "Education Fund", date: "Today, 10:23 AM", amount: "₹50,000" },
-                    { name: "Pam Beesly", campaign: "Health Camp", date: "Today, 09:12 AM", amount: "₹15,000" },
-                    { name: "Jim Halpert", campaign: "Food Distribution", date: "Yesterday", amount: "₹25,000" },
-                    { name: "Dwight Schrute", campaign: "Tree Plantation", date: "Yesterday", amount: "₹1,00,000" },
-                  ].map((row, i) => (
-                    <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center font-extrabold text-sm text-[#16a34a] group-hover:bg-[#16a34a] group-hover:text-white transition-colors">
-                            {row.name.charAt(0)}
-                          </div>
-                          <span className="font-extrabold text-gray-800 text-[14px]">{row.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 text-[13px] font-bold text-gray-500">{row.campaign}</td>
-                      <td className="py-4 text-[13px] font-bold text-gray-400">{row.date}</td>
-                      <td className="py-4 text-[14px] font-extrabold text-gray-900 text-right">{row.amount}</td>
+                  {(!dashboard?.recentDonations || dashboard.recentDonations.length === 0) ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-sm font-bold text-gray-400">No recent donations</td>
                     </tr>
-                  ))}
+                  ) : (
+                    dashboard.recentDonations.map((row: Donation, i: number) => (
+                      <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center font-extrabold text-sm text-[#16a34a] group-hover:bg-[#16a34a] group-hover:text-white transition-colors">
+                              {row.name ? row.name.charAt(0) : "U"}
+                            </div>
+                            <span className="font-extrabold text-gray-800 text-[14px]">{row.name || "Unknown"}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 text-[13px] font-bold text-gray-500">{row.campaign || "General"}</td>
+                        <td className="py-4 text-[13px] font-bold text-gray-400">{row.date}</td>
+                        <td className="py-4 text-[14px] font-extrabold text-gray-900 text-right">{row.amount}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -283,7 +345,7 @@ useEffect(() => {
         {/* Right Column (Side Panels) */}
         <div className="flex flex-col gap-8">
           
-          {/* Upcoming Events */}
+          {/* Upcoming Activities */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -291,77 +353,74 @@ useEffect(() => {
             className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
           >
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-extrabold text-gray-900">Upcoming Events</h3>
+              <h3 className="text-xl font-extrabold text-gray-900">Upcoming Activities</h3>
               <button className="text-gray-400 hover:text-gray-600 bg-gray-50 p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <MoreHorizontal className="w-5 h-5" />
               </button>
             </div>
             
             <div className="flex flex-col gap-6">
-              {[
-                { title: "Annual Charity Gala", date: "Oct 24", time: "6:00 PM", location: "Grand Hall", color: "bg-orange-50 text-[#f97316]" },
-                { title: "Tree Plantation Drive", date: "Oct 28", time: "8:00 AM", location: "Central Park", color: "bg-green-50 text-[#16a34a]" },
-                { title: "Blood Donation Camp", date: "Nov 02", time: "10:00 AM", location: "City Hospital", color: "bg-orange-50 text-[#f97316]" },
-              ].map((event, i) => (
-                <div key={i} className="flex gap-4 group cursor-pointer bg-white border border-transparent hover:border-gray-100 hover:shadow-lg p-3 -mx-3 rounded-[1.5rem] transition-all">
-                  <div className={`w-14 h-14 rounded-[1rem] flex flex-col items-center justify-center font-extrabold shrink-0 group-hover:scale-105 transition-transform ${event.color}`}>
-                    <span className="text-[10px] uppercase tracking-wider">{event.date.split(" ")[0]}</span>
-                    <span className="text-[18px] leading-tight">{event.date.split(" ")[1]}</span>
-                  </div>
-                  <div className="flex flex-col justify-center">
-                    <h4 className="font-extrabold text-gray-900 group-hover:text-[#16A34A] transition-colors text-[14px]">{event.title}</h4>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-gray-300" /> {event.time}
-                      </p>
-                      <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-gray-300" /> {event.location}
-                      </p>
+              {(!dashboard?.activities || dashboard.activities.length === 0) ? (
+                 <div className="py-4 text-center text-sm font-bold text-gray-400">No activities scheduled</div>
+              ) : (
+                dashboard.activities.map((item: Activity, i: number) => {
+                  const dateParts = item.date ? item.date.split(" ") : ["", ""];
+                  const defaultColor = i % 2 === 0 ? "bg-orange-50 text-[#f97316]" : "bg-green-50 text-[#16a34a]";
+                  const colorClass = item.color || defaultColor;
+
+                  return (
+                    <div key={item.id || i} className="flex gap-4 group cursor-pointer bg-white border border-transparent hover:border-gray-100 hover:shadow-lg p-3 -mx-3 rounded-[1.5rem] transition-all">
+                      <div className={`w-14 h-14 rounded-[1rem] flex flex-col items-center justify-center font-extrabold shrink-0 group-hover:scale-105 transition-transform ${colorClass}`}>
+                        <span className="text-[10px] uppercase tracking-wider">{dateParts[0]}</span>
+                        <span className="text-[18px] leading-tight">{dateParts[1]}</span>
+                      </div>
+                      <div className="flex flex-col justify-center">
+                        <span
+                          className={`text-xs font-bold px-2 py-1 rounded-full w-fit mb-1 ${
+                            item.type === "EVENT"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {item.type}
+                        </span>
+                        
+                        <h4 className="font-extrabold text-gray-900 group-hover:text-[#16A34A] transition-colors text-[14px]">{item.title}</h4>
+                        
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {item.time && (
+                            <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5 text-gray-300" /> {item.time}
+                            </p>
+                          )}
+                          {item.location && (
+                            <p className="text-[11px] font-bold text-gray-400 flex items-center gap-1">
+                              <MapPin className="w-3.5 h-3.5 text-gray-300" /> {item.location}
+                            </p>
+                          )}
+                        </div>
+
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full font-bold w-fit mt-2 ${
+                            item.status === "ACTIVE"
+                              ? "bg-green-100 text-green-700"
+                              : item.status === "UPCOMING"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
             <button className="w-full mt-6 py-3.5 rounded-full border-2 border-gray-50 font-bold text-[13px] text-gray-500 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-800 transition-colors">
               View Full Calendar
             </button>
           </motion.div>
-
-          {/* Recent Activity Timeline */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0 }}
-            className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
-          >
-            <h3 className="text-xl font-extrabold text-gray-900 mb-8">Recent Activity</h3>
-            
-            <div className="relative border-l-2 border-gray-100 ml-3 flex flex-col gap-8 pb-2">
-              
-              <div className="relative pl-6">
-                <div className="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-[#16A34A] border-4 border-white shadow-sm"></div>
-                <p className="text-[13px] font-extrabold text-gray-800">New volunteer application</p>
-                <p className="text-[12px] font-bold text-gray-400 mt-1 leading-snug">Jane Doe applied for Teaching Assistant role.</p>
-                <span className="text-[10px] font-extrabold text-gray-300 mt-2 block uppercase tracking-wider">10 mins ago</span>
-              </div>
-              
-              <div className="relative pl-6">
-                <div className="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-[#F97316] border-4 border-white shadow-sm"></div>
-                <p className="text-[13px] font-extrabold text-gray-800">Campaign milestone reached</p>
-                <p className="text-[12px] font-bold text-gray-400 mt-1 leading-snug">"Education for All" reached 50% of its goal.</p>
-                <span className="text-[10px] font-extrabold text-gray-300 mt-2 block uppercase tracking-wider">2 hours ago</span>
-              </div>
-
-              <div className="relative pl-6">
-                <div className="absolute -left-[9px] top-0.5 w-4 h-4 rounded-full bg-gray-300 border-4 border-white shadow-sm"></div>
-                <p className="text-[13px] font-extrabold text-gray-800">System update</p>
-                <p className="text-[12px] font-bold text-gray-400 mt-1 leading-snug">Monthly maintenance completed successfully.</p>
-                <span className="text-[10px] font-extrabold text-gray-300 mt-2 block uppercase tracking-wider">Yesterday</span>
-              </div>
-
-            </div>
-          </motion.div>
-
         </div>
       </div>
     </div>

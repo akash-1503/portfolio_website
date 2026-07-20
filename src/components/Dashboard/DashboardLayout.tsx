@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, Users, BookOpen, Heart, Calendar, 
   Settings, PieChart, Shield, ChevronLeft, ChevronRight,
@@ -158,10 +158,28 @@ const getRoleConfig = (pathname: string) => {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   const config = getRoleConfig(pathname);
   const Icon = config.icon;
+  const handleLogout = async () => {
+  try {
+    const res = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    if (!res.ok) {
+      throw new Error("Logout failed");
+    }
+
+    router.replace("/login");
+    router.refresh();
+  } catch (error) {
+    console.error("Logout Error:", error);
+    alert("Unable to logout. Please try again.");
+  }
+};
 
   return (
     <div className="h-full bg-[#fafafa] font-sans flex text-gray-900 overflow-hidden">
@@ -238,14 +256,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Footer Sidebar (Logout) */}
         <div className="p-4 border-t border-gray-50 shrink-0">
-          <Link href="/login">
-            <div className={`flex items-center rounded-xl transition-all duration-200 text-red-500 hover:bg-red-50 hover:text-red-600 ${
-              isSidebarOpen ? 'px-3 py-3 gap-3' : 'justify-center p-3'
-            }`}>
-              <LogOut className="w-5 h-5 shrink-0" />
-              {isSidebarOpen && <span className="text-[13px] font-bold">Logout</span>}
-            </div>
-          </Link>
+          <button
+  onClick={handleLogout}
+  className={`w-full flex items-center rounded-xl transition-all duration-200 text-red-500 hover:bg-red-50 hover:text-red-600 ${
+    isSidebarOpen ? "px-3 py-3 gap-3" : "justify-center p-3"
+  }`}
+>
+  <LogOut className="w-5 h-5 shrink-0" />
+  {isSidebarOpen && (
+    <span className="text-[13px] font-bold">Logout</span>
+  )}
+</button>
         </div>
       </motion.aside>
 

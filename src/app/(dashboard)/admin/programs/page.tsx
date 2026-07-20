@@ -745,29 +745,6 @@ endDate: endDate ? new Date(endDate) : null,
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date</label>
                     <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-600" />
                   </div>
-
-                  {/* Operational Metrics */}
-                  <div className="col-span-1 md:col-span-2 mt-4">
-                    <h4 className="text-[12px] font-extrabold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-2 mb-4">Operational Metrics</h4>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Campaigns</label>
-                    <input type="number" value={campaigns} onChange={(e) => setCampaigns(Number(e.target.value))} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Events</label>
-                    <input type="number" value={events} onChange={(e) => setEvents(Number(e.target.value))} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Volunteers</label>
-                    <input type="number" value={volunteers} onChange={(e) => setVolunteers(Number(e.target.value))} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Beneficiaries</label>
-                    <input type="number" value={beneficiaries} onChange={(e) => setBeneficiaries(Number(e.target.value))} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
-                  </div>
-
                 </form>
               </div>
 
