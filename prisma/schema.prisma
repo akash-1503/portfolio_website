@@ -18,6 +18,15 @@ enum Role {
   USER
 }
 
+enum NotificationType {
+  TASK
+  EVENT
+  CAMPAIGN
+  CERTIFICATE
+  ATTENDANCE
+  MESSAGE
+}
+
 enum UserStatus {
   ACTIVE
   INACTIVE
@@ -69,9 +78,15 @@ enum AttendanceStatus {
   LATE
 }
 
+enum CertificateType {
+  PROGRAM
+  CAMPAIGN
+  EVENT
+}
+
 enum CertificateStatus {
-  GENERATED
-  ISSUED
+  PENDING
+  VERIFIED
   REVOKED
 }
 
@@ -261,6 +276,7 @@ model VerificationToken {
 //////////////////////////////////////////////////////////
 
 model Notification {
+  type NotificationType
   id String @id @default(cuid())
 
   userId String
@@ -274,6 +290,7 @@ model Notification {
   isRead Boolean @default(false)
 
   createdAt DateTime @default(now())
+  
 
   @@index([userId])
 }
@@ -391,17 +408,28 @@ model Attendance {
 //////////////////////////////////////////////////////////
 // CERTIFICATE
 //////////////////////////////////////////////////////////
-
 model Certificate {
   id String @id @default(cuid())
 
   volunteerId String
-
   volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
 
   title String
 
   description String?
+
+  certificateNumber String @unique
+
+  type CertificateType
+
+  programId String?
+  program Program? @relation(fields: [programId], references: [id])
+
+  campaignId String?
+  campaign Campaign? @relation(fields: [campaignId], references: [id])
+
+  eventId String?
+  event Event? @relation(fields: [eventId], references: [id])
 
   certificateUrl String?
 
@@ -410,8 +438,15 @@ model Certificate {
   issuedAt DateTime @default(now())
 
   status CertificateStatus
-}
 
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([volunteerId])
+  @@index([status])
+  @@index([type])
+}
 //////////////////////////////////////////////////////////
 // PROGRAM
 //////////////////////////////////////////////////////////
@@ -464,6 +499,7 @@ model Program {
   campaigns  Campaign[]
   events     Event[]
   volunteers VolunteerProgram[]
+  certificates Certificate[]
 
   @@index([ngoId])
   @@index([status])
@@ -512,6 +548,7 @@ model Campaign {
 
   donations Donation[]
   events    Event[]
+  certificates Certificate[]
 
   @@index([ngoId])
   @@index([status])
@@ -590,6 +627,7 @@ model Event {
 
   volunteers VolunteerEvent[]
   attendance Attendance[]
+  certificates Certificate[]
 
   @@index([ngoId])
   @@index([status])

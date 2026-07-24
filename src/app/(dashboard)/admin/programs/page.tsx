@@ -388,7 +388,7 @@ endDate: endDate ? new Date(endDate) : null,
                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-6">
                       <div className={`h-full rounded-full ${(prog.color || 'bg-blue-100').replace('100', '500')}`} style={{ width: `${prog.progress || 0}%` }}></div>
                     </div>
-                    <button onClick={() => setSelectedProgram(prog)} className="w-full py-3.5 bg-gray-50 text-gray-700 rounded-full text-[12px] font-extrabold hover:bg-[#16a34a] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
+                   <button onClick={() => setSelectedProgram(prog)} className="w-full py-3.5 bg-gray-50 text-gray-700 rounded-full text-[12px] font-extrabold hover:bg-[#16a34a] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
                       <Eye className="w-4 h-4" /> View Details
                     </button>
                   </div>
@@ -490,14 +490,75 @@ endDate: endDate ? new Date(endDate) : null,
                 <div className="mb-8 flex flex-col gap-4">
                   <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
                     <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Target className="w-3.5 h-3.5" /> Linked Campaigns</h4>
-                    <div className="flex flex-wrap gap-2">
-                      
-                    </div>
+                    <div className="flex flex-col gap-3">
+
+    {selectedProgram.campaigns?.length > 0 ? (
+
+        selectedProgram.campaigns.map((campaign: any) => (
+
+            <div
+                key={campaign.id}
+                className="bg-green-50 border border-green-200 rounded-xl p-4"
+            >
+                <div className="font-bold text-green-700">
+                    {campaign.title}
+                </div>
+
+                <div className="text-xs text-gray-500 mt-1">
+                    Status : {campaign.status}
+                </div>
+
+            </div>
+
+        ))
+
+    ) : (
+
+        <p className="text-sm text-gray-400">
+            No linked campaigns
+        </p>
+
+    )}
+
+</div>
                   </div>
                   <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
                     <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Linked Events</h4>
-                    <div className="flex flex-wrap gap-2">
-                    </div>
+                    <div className="flex flex-col gap-3">
+
+    {selectedProgram.events?.length > 0 ? (
+
+        selectedProgram.events.map((event: any) => (
+
+            <div
+                key={event.id}
+                className="bg-orange-50 border border-orange-200 rounded-xl p-4"
+            >
+                <div className="font-bold text-orange-700">
+                    {event.title}
+                </div>
+
+                <div className="text-xs text-gray-500 mt-1">
+                    Status : {event.status}
+                </div>
+
+                <div className="text-xs text-gray-500">
+                    {new Date(event.startDate).toLocaleDateString()}
+                </div>
+
+            </div>
+
+        ))
+
+    ) : (
+
+        <p className="text-sm text-gray-400">
+            No linked events
+        </p>
+
+    )}
+
+</div>
                   </div>
                 </div>
               </div>

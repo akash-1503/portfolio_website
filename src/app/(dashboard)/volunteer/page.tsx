@@ -1,298 +1,239 @@
 "use client";
 
-import { motion } from "framer-motion";
-import CountUp from "react-countup";
+import { useState } from "react";
+import { motion, Variants } from "framer-motion";
+import Link from "next/link";
 import { 
-  Heart, Calendar, Users, Award, 
-  CheckSquare, Activity, Star, Trophy,
-  TrendingUp, TrendingDown, ArrowRight,
-  Sun, MessageCircle, MapPin, Clock
+  BookOpen, Calendar, Clock, CheckCircle2, 
+  Award, MessageSquare, ArrowRight, MapPin, 
+  Bell, Play, UploadCloud, UserCheck, CheckCircle, 
+  AlertCircle, ShieldCheck, ChevronRight
 } from "lucide-react";
-import React from "react";
 
-const kpiCards = [
-  { title: "Hours Volunteered", value: 142, icon: Activity, color: "text-blue-500", bg: "bg-blue-500/10", trend: "+12% this month", up: true, progress: 75, suffix: "h" },
-  { title: "Events Participated", value: 28, icon: Calendar, color: "text-[#16A34A]", bg: "bg-[#16A34A]/10", trend: "+3 new", up: true, progress: 60, suffix: "" },
-  { title: "Beneficiaries Helped", value: 850, icon: Users, color: "text-[#F97316]", bg: "bg-[#F97316]/10", trend: "+150 this week", up: true, progress: 90, suffix: "+" },
-  { title: "Certificates Earned", value: 4, icon: Award, color: "text-purple-500", bg: "bg-purple-500/10", trend: "1 pending", up: true, progress: 100, suffix: "" },
-  { title: "Current Tasks", value: 3, icon: CheckSquare, color: "text-rose-500", bg: "bg-rose-500/10", trend: "2 due today", up: false, progress: 40, suffix: "" },
-  { title: "Attendance", value: 94, icon: Clock, color: "text-teal-500", bg: "bg-teal-500/10", trend: "+2% average", up: true, progress: 94, suffix: "%" },
-  { title: "Impact Score", value: 920, icon: Star, color: "text-amber-500", bg: "bg-amber-500/10", trend: "Top 5%", up: true, progress: 85, suffix: "" },
-  { title: "Volunteer Rank", value: 2, icon: Trophy, color: "text-indigo-500", bg: "bg-indigo-500/10", trend: "Level 4 Hero", up: true, progress: 80, suffix: "" },
-];
-
-const impactSummary = [
-  { label: "Lives Impacted", value: 1250, total: 2000, color: "#16A34A" },
-  { label: "Meals Distributed", value: 8400, total: 10000, color: "#F97316" },
-  { label: "Trees Planted", value: 320, total: 500, color: "#3B82F6" },
-  { label: "Children Educated", value: 45, total: 50, color: "#8B5CF6" },
-];
-
-// Simple SVG sparkline component
-const Sparkline = ({ color }: { color: string }) => (
-  <svg width="60" height="20" viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0 15C5 15 10 10 15 12C20 14 25 5 30 8C35 11 40 2 45 5C50 8 55 18 60 18" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M0 15C5 15 10 10 15 12C20 14 25 5 30 8C35 11 40 2 45 5C50 8 55 18 60 18" stroke={color} strokeOpacity="0.3" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" className="blur-[2px]" />
-  </svg>
-);
-
-const CircularProgress = ({ value, total, color, label }: { value: number, total: number, color: string, label: string }) => {
-  const radius = 36;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / total) * circumference;
-
-  return (
-    <div className="flex flex-col items-center justify-center p-4 bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100 relative overflow-hidden group">
-      <div className="absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 transition-transform group-hover:scale-150 duration-500" style={{ backgroundColor: color, transform: 'translate(30%, -30%)' }} />
-      
-      <div className="relative w-24 h-24 flex items-center justify-center mb-3">
-        {/* Background Circle */}
-        <svg className="w-full h-full transform -rotate-90">
-          <circle
-            cx="48"
-            cy="48"
-            r={radius}
-            stroke="currentColor"
-            strokeWidth="8"
-            fill="transparent"
-            className="text-slate-100"
-          />
-          {/* Progress Circle */}
-          <motion.circle
-            initial={{ strokeDashoffset: circumference }}
-            animate={{ strokeDashoffset }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-            cx="48"
-            cy="48"
-            r={radius}
-            stroke={color}
-            strokeWidth="8"
-            fill="transparent"
-            strokeDasharray={circumference}
-            strokeLinecap="round"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-[#0F172A]">
-            <CountUp end={value} duration={2.5} separator="," />
-          </span>
-        </div>
-      </div>
-      <span className="text-sm font-semibold text-slate-600 text-center">{label}</span>
-    </div>
-  );
+// --- DUMMY DATA ---
+const volunteerStats = {
+  programsAssigned: 3,
+  eventsAssigned: 5,
+  pendingTasks: 7,
+  attendance: "96%",
+  certificates: 4,
+  hoursWorked: 168,
+  completedTasks: 52,
+  unreadMessages: 3,
 };
 
+const todaySchedule = [
+  { id: 1, time: "09:00 AM", title: "Education Drive", location: "City Central School", status: "completed" },
+  { id: 2, time: "12:00 PM", title: "Food Distribution", location: "Community Hall, Sector 4", status: "current" },
+  { id: 3, time: "03:00 PM", title: "Upload Attendance & Proof", location: "Volunteer Portal", status: "pending" },
+];
+
+const recentNotifications = [
+  { id: 1, type: "task", message: "New Task Assigned: Logistics Planning", time: "10 mins ago", icon: AlertCircle, color: "text-blue-500", bg: "bg-blue-50" },
+  { id: 2, type: "approval", message: "Attendance Approved for Tree Plantation", time: "2 hours ago", icon: CheckCircle, color: "text-[#16a34a]", bg: "bg-green-50" },
+  { id: 3, type: "certificate", message: "Certificate Generated: Q3 Top Volunteer", time: "Yesterday", icon: Award, color: "text-purple-500", bg: "bg-purple-50" },
+  { id: 4, type: "message", message: "New Message from Coordinator", time: "Yesterday", icon: MessageSquare, color: "text-[#f97316]", bg: "bg-orange-50" },
+];
+
 export default function VolunteerDashboard() {
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+
+  // --- Animation Variants ---
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
-    <div className="flex flex-col xl:flex-row gap-6 w-full">
+    <div className="relative flex flex-col gap-8 min-h-screen pb-10">
       
-      {/* MAIN CONTENT (Left) */}
-      <div className="flex-1 flex flex-col gap-6">
-        
-        {/* Welcome Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-[#16A34A] rounded-3xl p-8 text-white shadow-lg shadow-[#16A34A]/20"
-        >
-          {/* Abstract leaf shapes / background */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 right-10 w-40 h-40 bg-black opacity-10 rounded-full blur-2xl"></div>
-          
-          <svg className="absolute right-0 bottom-0 opacity-20 w-64 h-64 transform translate-x-1/4 translate-y-1/4" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#FFFFFF" d="M47.7,-57.2C59.9,-46.3,67,-29.4,69.5,-12.3C72,4.8,70,22.2,60.8,36C51.6,49.8,35.2,59.9,16.5,65.3C-2.2,70.7,-23.1,71.4,-38.9,62.8C-54.7,54.2,-65.4,36.3,-70,17.2C-74.6,-1.9,-73.1,-22.2,-62.4,-37.2C-51.7,-52.2,-31.8,-61.9,-14.2,-64.9C3.4,-67.9,21,-64.1,47.7,-57.2Z" transform="translate(100 100)" />
+      {/* --- BACKGROUND ANIMATIONS (Craft & Dotted Lines) --- */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Top-Right Dotted Arc & Paper Plane */}
+        <div className="absolute top-0 right-10 w-[300px] h-[300px] opacity-60 mix-blend-multiply">
+          <svg className="absolute w-full h-full" viewBox="0 0 200 200" fill="none">
+            <path d="M 0 200 C 50 100, 150 100, 200 0" stroke="#16a34a" strokeWidth="2" strokeDasharray="6 6" strokeLinecap="round" opacity="0.3" />
           </svg>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-sm font-semibold mb-4"
-              >
-                <Sun className="w-4 h-4 text-yellow-300" />
-                Good Morning
-              </motion.div>
-              <h1 className="text-3xl md:text-4xl font-extrabold mb-2 tracking-tight">Welcome back, Sarah 👋</h1>
-              <p className="text-white/80 font-medium text-lg max-w-xl">
-                Thank you for making a difference. "The best way to find yourself is to lose yourself in the service of others."
-              </p>
-            </div>
-            
-            <div className="flex flex-col items-center bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl min-w-[200px]">
-              <span className="text-sm font-bold text-white/90 mb-2">Profile Completion</span>
-              <div className="w-full bg-black/20 rounded-full h-2.5 mb-2">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: "85%" }}
-                  transition={{ duration: 1, delay: 0.5 }}
-                  className="bg-white h-2.5 rounded-full"
-                ></motion.div>
-              </div>
-              <span className="text-2xl font-black">85%</span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpiCards.map((card, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-              className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
-              
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className={`p-3 rounded-2xl ${card.bg} ${card.color}`}>
-                  <card.icon className="w-6 h-6" />
-                </div>
-                <Sparkline color={card.up ? "#16A34A" : "#ef4444"} />
-              </div>
-              
-              <div className="relative z-10">
-                <h3 className="text-slate-500 font-semibold text-sm mb-1">{card.title}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-extrabold text-[#0F172A]">
-                    <CountUp end={card.value} duration={2} separator="," />
-                    {card.suffix}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between relative z-10">
-                <div className={`flex items-center gap-1 text-xs font-bold ${card.up ? 'text-[#16A34A]' : 'text-rose-500'}`}>
-                  {card.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {card.trend}
-                </div>
-                
-                {/* Progress bar line */}
-                <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${card.progress}%` }}
-                    className={`h-full rounded-full ${card.up ? 'bg-[#16A34A]' : 'bg-rose-500'}`}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          ))}
+          <motion.div
+            animate={{ y: [-5, 5, -5], x: [-5, 5, -5], rotate: [-2, 2, -2] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-12 right-12"
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform rotate-45 drop-shadow-md">
+              <path d="M21.5 2.5L2 10.5L9.5 13.5L21.5 2.5Z" fill="#4ade80" opacity="0.8" />
+              <path d="M21.5 2.5L14.5 22L9.5 13.5L21.5 2.5Z" fill="#16a34a" />
+            </svg>
+          </motion.div>
         </div>
 
-        {/* Impact Summary Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <div className="flex items-center justify-between mb-4 mt-2">
-            <h2 className="text-xl font-bold text-[#0F172A]">Your Impact</h2>
-            <button className="text-sm font-semibold text-[#16A34A] hover:text-[#16A34A]/80 flex items-center gap-1">
-              View detailed report <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {impactSummary.map((item, index) => (
-              <CircularProgress 
-                key={index} 
-                value={item.value} 
-                total={item.total} 
-                color={item.color} 
-                label={item.label} 
-              />
-            ))}
-          </div>
-        </motion.div>
-
+        {/* Bottom-Left Wavy Line */}
+        <div className="absolute bottom-20 left-[-50px] w-[400px] h-[200px] opacity-40 mix-blend-multiply">
+          <svg className="absolute w-full h-full" viewBox="0 0 400 200" fill="none">
+            <path d="M 0 100 Q 100 0, 200 100 T 400 100" stroke="#f97316" strokeWidth="2" strokeDasharray="5 7" strokeLinecap="round" opacity="0.4" />
+          </svg>
+          <motion.div
+            animate={{ x: [0, 400], y: [0, -100, 0] }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute top-[100px] left-0"
+          >
+            <div className="w-3 h-3 bg-[#f97316] rounded-full shadow-[0_0_10px_rgba(249,115,22,0.8)]" />
+          </motion.div>
+        </div>
       </div>
 
-      {/* RIGHT PANEL (Sidebar within Dashboard) */}
-      <div className="w-full xl:w-80 flex flex-col gap-6">
-        
-        {/* Today's Schedule */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-hidden"
-        >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#F97316] to-[#16A34A]"></div>
-          <h3 className="font-bold text-lg text-[#0F172A] mb-4">Today's Schedule</h3>
-          
-          <div className="space-y-4">
-            <div className="flex gap-4 relative">
-              <div className="absolute left-[11px] top-8 bottom-[-16px] w-[2px] bg-slate-100 border-l border-dashed border-slate-200"></div>
-              <div className="flex flex-col items-center z-10">
-                <div className="w-6 h-6 rounded-full bg-[#F97316]/20 border-2 border-white shadow-sm flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-[#F97316]"></div>
-                </div>
-              </div>
-              <div className="flex-1 bg-slate-50 p-3 rounded-2xl border border-slate-100 hover:border-[#F97316]/30 transition-colors cursor-pointer">
-                <p className="text-xs font-bold text-[#F97316] mb-1">10:00 AM - 12:00 PM</p>
-                <h4 className="font-bold text-[#0F172A] text-sm">Food Distribution</h4>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Community Center</p>
-              </div>
-            </div>
+      {/* --- PAGE HEADER --- */}
+      <motion.div 
+        variants={containerVariants} initial="hidden" animate="show"
+        className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mt-4"
+      >
+        <div>
+          <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+            Good Morning, Akash 👋
+          </motion.h1>
+          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3 mt-4">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-[11px] font-extrabold uppercase tracking-widest">
+              <UserCheck className="w-3.5 h-3.5 text-gray-400" /> VOL-00125
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-[#16a34a] rounded-lg text-[11px] font-extrabold uppercase tracking-widest border border-green-100">
+              <ShieldCheck className="w-3.5 h-3.5" /> Community Volunteer
+            </span>
+            <span className="text-[12px] font-bold text-gray-400">
+              Joined: 12 May 2026 • Current: <strong className="text-gray-700">Education Program</strong>
+            </span>
+          </motion.div>
+        </div>
 
-            <div className="flex gap-4 relative">
-              <div className="flex flex-col items-center z-10">
-                <div className="w-6 h-6 rounded-full bg-[#16A34A]/20 border-2 border-white shadow-sm flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-[#16A34A]"></div>
-                </div>
-              </div>
-              <div className="flex-1 bg-slate-50 p-3 rounded-2xl border border-slate-100 hover:border-[#16A34A]/30 transition-colors cursor-pointer">
-                <p className="text-xs font-bold text-[#16A34A] mb-1">02:00 PM - 04:00 PM</p>
-                <h4 className="font-bold text-[#0F172A] text-sm">Youth Mentoring</h4>
-                <p className="text-xs text-slate-500 mt-1 flex items-center gap-1"><MapPin className="w-3 h-3" /> Online Room A</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Latest Announcement */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-[#0F172A] to-slate-800 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-          
-          <div className="flex items-center gap-2 mb-3">
-            <span className="px-2 py-1 bg-rose-500/20 text-rose-300 text-[10px] font-bold rounded-lg uppercase tracking-wider">Announcement</span>
-          </div>
-          <h3 className="font-bold text-lg mb-2 leading-tight">Annual Charity Gala 2026</h3>
-          <p className="text-slate-300 text-sm mb-4">Join us for our biggest fundraising event of the year. Volunteers needed for organization.</p>
-          <button className="w-full py-2.5 bg-white text-[#0F172A] font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors">
-            Sign Up Now
+        {/* Dynamic Check-in Button */}
+        <motion.div variants={itemVariants}>
+          <button 
+            onClick={() => setIsCheckedIn(!isCheckedIn)}
+            className={`flex items-center gap-2 px-8 py-3.5 rounded-full font-bold text-[13px] transition-all transform hover:-translate-y-0.5 ${
+              isCheckedIn 
+              ? "bg-white border-2 border-gray-200 text-gray-600 shadow-sm" 
+              : "bg-[#16A34A] text-white shadow-[0_8px_20px_rgba(22,163,74,0.25)] hover:bg-[#15803d]"
+            }`}
+          >
+            {isCheckedIn ? <><CheckCircle2 className="w-4 h-4 text-[#16a34a]" /> Checked In</> : <><MapPin className="w-4 h-4" /> Check In Today</>}
           </button>
         </motion.div>
+      </motion.div>
 
-        {/* Quick Actions */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
-        >
-          <h3 className="font-bold text-lg text-[#0F172A] mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-[#16A34A]/5 hover:text-[#16A34A] border border-slate-100 hover:border-[#16A34A]/20 transition-all group">
-              <CheckSquare className="w-6 h-6 text-slate-400 group-hover:text-[#16A34A] transition-colors" />
-              <span className="text-xs font-bold text-slate-600 group-hover:text-[#16A34A]">Log Hours</span>
-            </button>
-            <button className="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-[#F97316]/5 hover:text-[#F97316] border border-slate-100 hover:border-[#F97316]/20 transition-all group">
-              <MessageCircle className="w-6 h-6 text-slate-400 group-hover:text-[#F97316] transition-colors" />
-              <span className="text-xs font-bold text-slate-600 group-hover:text-[#F97316]">Get Help</span>
-            </button>
-          </div>
-        </motion.div>
+      {/* --- PRIMARY STATS (ROW 1) --- */}
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: "Programs Assigned", value: volunteerStats.programsAssigned, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50" },
+          { label: "Events Assigned", value: volunteerStats.eventsAssigned, icon: Calendar, color: "text-[#f97316]", bg: "bg-orange-50" },
+          { label: "Pending Tasks", value: volunteerStats.pendingTasks, icon: Clock, color: "text-purple-500", bg: "bg-purple-50" },
+          { label: "Attendance", value: volunteerStats.attendance, icon: CheckCircle2, color: "text-[#16a34a]", bg: "bg-green-50" },
+        ].map((stat, i) => (
+          <motion.div key={i} variants={itemVariants} className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-transform group">
+            <div className={`w-12 h-12 rounded-[1.2rem] ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+              <stat.icon className="w-6 h-6" />
+            </div>
+            <h3 className="text-3xl font-extrabold text-gray-900">{stat.value}</h3>
+            <p className="text-[11px] font-extrabold text-gray-400 mt-1 uppercase tracking-widest">{stat.label}</p>
+          </motion.div>
+        ))}
+      </motion.div>
 
+      {/* --- MAIN DASHBOARD GRID --- */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* LEFT COLUMN: Schedule & Quick Actions */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
+          
+          {/* Today's Schedule (Dotted Line Vertical Timeline) */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-extrabold text-gray-900">Today's Schedule</h2>
+              <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[11px] font-extrabold uppercase tracking-widest">
+                {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+
+            <div className="relative pl-6 border-l-2 border-dashed border-gray-200 space-y-8">
+              {todaySchedule.map((item, index) => (
+                <div key={item.id} className="relative">
+                  {/* Timeline Dot */}
+                  <div className={`absolute -left-[31px] w-4 h-4 rounded-full border-4 border-white ${
+                    item.status === 'completed' ? 'bg-[#16a34a]' : 
+                    item.status === 'current' ? 'bg-[#f97316] shadow-[0_0_0_4px_rgba(249,115,22,0.2)]' : 'bg-gray-300'
+                  }`} />
+                  
+                  <div className={`p-5 rounded-[1.5rem] transition-colors border ${
+                    item.status === 'current' ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50/50 border-transparent hover:border-gray-100'
+                  }`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[12px] font-extrabold text-[#f97316] mb-1 block">{item.time}</span>
+                        <h3 className={`text-[16px] font-extrabold ${item.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                          {item.title}
+                        </h3>
+                        <p className="text-[12px] font-bold text-gray-500 flex items-center gap-1.5 mt-2">
+                          <MapPin className="w-3.5 h-3.5" /> {item.location}
+                        </p>
+                      </div>
+                      
+                      {/* Contextual Action Button based on status */}
+                      {item.status === 'current' && (
+                        <button className="px-5 py-2.5 bg-[#f97316] text-white rounded-full text-[12px] font-bold flex items-center gap-2 shadow-md hover:bg-[#ea580c] transition-colors">
+                          <Play className="w-3.5 h-3.5" /> Start Task
+                        </button>
+                      )}
+                      {item.status === 'pending' && (
+                        <button className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-full text-[12px] font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors">
+                          <UploadCloud className="w-3.5 h-3.5" /> Upload Proof
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+        </div>
+
+        {/* RIGHT COLUMN: Secondary Stats  */}
+        <div className="flex flex-col gap-8">
+          
+          {/* Secondary Stats Grid */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            className="grid grid-cols-2 gap-4"
+          >
+             <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+               <Award className="w-6 h-6 text-yellow-500 mb-1" />
+               <h3 className="text-2xl font-extrabold text-gray-900">{volunteerStats.certificates}</h3>
+               <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Certificates</p>
+             </div>
+             <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+               <Clock className="w-6 h-6 text-blue-500 mb-1" />
+               <h3 className="text-2xl font-extrabold text-gray-900">{volunteerStats.hoursWorked}</h3>
+               <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Hours Logged</p>
+             </div>
+             <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2">
+               <CheckCircle2 className="w-6 h-6 text-[#16a34a] mb-1" />
+               <h3 className="text-2xl font-extrabold text-gray-900">{volunteerStats.completedTasks}</h3>
+               <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Tasks Done</p>
+             </div>
+             <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center gap-2 relative">
+               <div className="absolute top-4 right-4 w-2 h-2 bg-[#f97316] rounded-full" />
+               <MessageSquare className="w-6 h-6 text-[#f97316] mb-1" />
+               <h3 className="text-2xl font-extrabold text-gray-900">{volunteerStats.unreadMessages}</h3>
+               <p className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest">Unread Msgs</p>
+             </div>
+          </motion.div>
+
+        </div>
       </div>
     </div>
   );

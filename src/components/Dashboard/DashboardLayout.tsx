@@ -56,11 +56,37 @@ const getRoleConfig = (pathname: string) => {
       indicatorColor: "bg-orange-500",
       badgeBorder: "border-orange-100",
       links: [
-        { name: "Dashboard", href: "/volunteer", icon: LayoutDashboard },
-        { name: "Tasks", href: "/volunteer/tasks", icon: ClipboardList },
-        { name: "Events", href: "/volunteer/events", icon: Calendar },
-        { name: "Settings", href: "/volunteer/settings", icon: Settings },
-      ]
+  {
+    name: "Dashboard",
+    href: "/volunteer",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Assigned Programs",
+    href: "/volunteer/programs",
+    icon: BookOpen,
+  },
+  {
+    name: "Events & Campaigns",
+    href: "/volunteer/activities",
+    icon: Calendar,
+  },
+  {
+    name: "Certificates",
+    href: "/volunteer/certificates",
+    icon: Gift,
+  },
+  {
+    name: "Messages",
+    href: "/volunteer/messages",
+    icon: Heart,
+  },
+  {
+    name: "Settings",
+    href: "/volunteer/settings",
+    icon: Settings,
+  },
+]
     };
   } else if (pathname?.startsWith("/user")) {
     return {
@@ -87,7 +113,7 @@ const getRoleConfig = (pathname: string) => {
     };
   } else if (pathname?.startsWith("/finance")) {
     return {
-      id: "finance",
+      id: "finance",  
       badgeTitle: "FINANCE PORTAL",
       badgeSubtitle: "Finance Manager",
       icon: Wallet,
