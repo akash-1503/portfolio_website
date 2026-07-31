@@ -1,10 +1,9 @@
 import { HeroSection } from "@/components/sections/hero";
 import { DashboardSection } from "@/components/sections/dashboard";
-import { AboutSection } from "@/components/sections/about";
+import { ExperienceSection } from "@/components/sections/experience";
 import { ProjectsSection } from "@/components/sections/projects";
-import { ArchitectureLab } from "@/components/sections/architecture-lab";
-import { DatabaseExplorer } from "@/components/sections/database-explorer";
-import { ApiExplorer } from "@/components/sections/api-explorer";
+import { HackathonsSection } from "@/components/sections/hackathons";
+import { ExcellenceSection } from "@/components/sections/excellence";
 import { ContactSection } from "@/components/sections/contact";
 
 export default function Home() {
@@ -12,11 +11,10 @@ export default function Home() {
     <main className="min-h-screen">
       <HeroSection />
       <DashboardSection />
+      <ExperienceSection />
       <ProjectsSection />
-      <ArchitectureLab />
-      <DatabaseExplorer />
-      <ApiExplorer />
-      <AboutSection />
+      <HackathonsSection />
+      <ExcellenceSection />
       <ContactSection />
     </main>
   );

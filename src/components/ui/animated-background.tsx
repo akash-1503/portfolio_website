@@ -9,7 +9,7 @@ export const AnimatedBackground = ({ className }: { className?: string }) => {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
+    const t = setTimeout(() => setIsClient(true), 0);
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
         x: e.clientX,
@@ -18,7 +18,10 @@ export const AnimatedBackground = ({ className }: { className?: string }) => {
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
   return (

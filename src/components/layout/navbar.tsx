@@ -2,14 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useScroll, useMotionValueEvent, useTransform, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useTransform, useMotionValue, useSpring, MotionValue } from "framer-motion";
 import { 
-  Home, User, Briefcase, Code2, Cpu, GraduationCap, 
-  Trophy, FileBadge, Moon, Sun, Monitor, Play, FileText, Mail
+  Home, Activity, Briefcase, Code2, Rocket, Star, Mail, FileText
 } from "lucide-react";
 import { GithubIcon } from "@/components/icons";
-import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
 
 type DockItemData = {
   name: string;
@@ -19,14 +16,15 @@ type DockItemData = {
 
 const DOCK_ITEMS: DockItemData[] = [
   { name: "Home", href: "#home", icon: Home },
-  { name: "About", href: "#about", icon: User },
+  { name: "Dashboard", href: "#dashboard", icon: Activity },
+  { name: "Experience", href: "#experience", icon: Briefcase },
   { name: "Projects", href: "#projects", icon: Code2 },
-  { name: "Skills", href: "#skills", icon: Cpu },
-  { name: "Learning", href: "#learning", icon: GraduationCap },
+  { name: "Hackathons", href: "#hackathons", icon: Rocket },
+  { name: "Excellence", href: "#excellence", icon: Star },
   { name: "Contact", href: "#contact", icon: Mail },
 ];
 
-function DockItem({ item, mouseX }: { item: DockItemData, mouseX: any }) {
+function DockItem({ item, mouseX }: { item: DockItemData, mouseX: MotionValue<number> }) {
   const ref = React.useRef<HTMLDivElement>(null);
   
   const distance = useTransform(mouseX, (val: number) => {
@@ -67,23 +65,12 @@ function DockItem({ item, mouseX }: { item: DockItemData, mouseX: any }) {
 }
 
 export function Navbar() {
-  const [isVisible, setIsVisible] = React.useState(true);
-  const { scrollY, scrollYProgress } = useScroll();
   const mouseX = useMotionValue(Infinity);
-
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    const previous = scrollY.getPrevious() || 0;
-    if (latest > previous && latest > 150) {
-      setIsVisible(false);
-    } else {
-      setIsVisible(true);
-    }
-  });
 
   return (
     <motion.div
       initial={{ y: 100 }}
-      animate={{ y: isVisible ? 0 : 150 }}
+      animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
       className="fixed bottom-6 inset-x-0 z-50 flex items-center justify-center px-4 pointer-events-none"
     >
