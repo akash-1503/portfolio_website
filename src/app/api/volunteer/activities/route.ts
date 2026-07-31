@@ -126,21 +126,25 @@ export async function GET() {
     const volunteerId = userWithVolunteer.volunteer.id;
 
     // --- 5. Fetch Assigned Events (Optimized Includes) ---
-    const assignedEventsRaw = await prisma.volunteerEvent.findMany({
-      where: { volunteerId },
+   const assignedPrograms = await prisma.volunteerProgram.findMany({
+  where: {
+    volunteerId,
+  },
+  include: {
+    program: {
       include: {
-        event: {
+        events: {
+          where: {
+            isDeleted: false,
+          },
           include: {
             volunteers: true,
-            program: {
-              select: {
-                coordinator: true,
-              },
-            },
           },
         },
       },
-    });
+    },
+  },
+});
 
     // --- 6. Fetch Assigned Campaigns (Derived via Programs) ---
     const assignedProgramsRaw = await prisma.volunteerProgram.findMany({
@@ -166,39 +170,49 @@ export async function GET() {
     // --- 7. Map Data to DTOs ---
 
     // Process Events
-    const events: EventDTO[] = assignedEventsRaw
-      .map((ve) => ve.event)
-      .filter((ev) => ev && !ev.isDeleted)
-      .map((ev) => {
-        const status = ev.status;
-        let bannerColor = "bg-gray-100";
+   const events: EventDTO[] = [];
 
-        if (status === "ACTIVE") bannerColor = "bg-green-100";
-        else if (status === "UPCOMING") bannerColor = "bg-blue-100";
-        else if (status === "COMPLETED") bannerColor = "bg-purple-100";
-        else if (status === "CANCELLED") bannerColor = "bg-red-100";
+assignedPrograms.forEach((vp) => {
+  vp.program.events.forEach((ev) => {
 
-        return {
-          id: ev.id,
-          title: ev.title || "Unnamed Event",
-          status: status,
-          date: formatDate(ev.startDate),
-          time: ev.startDate && ev.endDate
-            ? `${formatTime(ev.startDate)} - ${formatTime(ev.endDate)}`
-            : "TBA",
-          venue: ev.venue || "TBA",
-          coordinator: ev.program?.coordinator ?? "Event Coordinator",
-          description: ev.description || "",
-          mapUrl: ev.googleMapUrl || `https://maps.google.com/?q=${encodeURIComponent(ev.venue || "")}`,
-          volunteers: {
-            required: ev.maxVolunteers || 0,
-            current: ev.volunteers?.length || 0,
-          },
-          checklist: [], // Temporary placeholder
-          bannerColor,
-        };
-      });
+    let bannerColor = "bg-gray-100";
 
+    if (ev.status === "ACTIVE")
+      bannerColor = "bg-green-100";
+
+    else if (ev.status === "UPCOMING")
+      bannerColor = "bg-blue-100";
+
+    else if (ev.status === "COMPLETED")
+      bannerColor = "bg-purple-100";
+
+    else if (ev.status === "CANCELLED")
+      bannerColor = "bg-red-100";
+
+    events.push({
+      id: ev.id,
+      title: ev.title,
+      status: ev.status,
+      date: formatDate(ev.startDate),
+      time:
+        ev.startDate && ev.endDate
+          ? `${formatTime(ev.startDate)} - ${formatTime(ev.endDate)}`
+          : "TBA",
+      venue: ev.venue || "TBA",
+      coordinator: vp.program.coordinator || "Coordinator",
+      description: ev.description || "",
+      mapUrl:
+        ev.googleMapUrl ||
+        `https://maps.google.com/?q=${encodeURIComponent(ev.venue || "")}`,
+      volunteers: {
+        required: ev.maxVolunteers || 0,
+        current: ev.volunteers.length,
+      },
+      checklist: [],
+      bannerColor,
+    });
+  });
+});
     // Process Campaigns (Deduplicating derived campaigns using a Typed Map)
     const campaignsMap = new Map<string, CampaignDTO>();
 

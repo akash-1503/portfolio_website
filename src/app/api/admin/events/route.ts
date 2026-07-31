@@ -277,6 +277,8 @@ export async function PATCH(req: Request) {
         if (updateData.title !== undefined) updateFields.title = updateData.title;
         if (updateData.description !== undefined) updateFields.description = updateData.description;
         if (updateData.category !== undefined) updateFields.category = updateData.category;
+        if (updateData.status !== undefined)
+    updateFields.status = updateData.status;
         if (updateData.eventType !== undefined) updateFields.eventType = updateData.eventType;
         if (updateData.summary !== undefined) updateFields.summary = updateData.summary;
         if (updateData.venue !== undefined) updateFields.venue = updateData.venue;

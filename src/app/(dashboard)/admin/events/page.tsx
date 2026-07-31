@@ -57,7 +57,9 @@ export default function EventsManagementPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/admin/events");
+      const res = await fetch("/api/admin/events", {
+  cache: "no-store",
+});
       const data = await res.json();
       if (data.success) {
         setEvents(data.records);
@@ -119,7 +121,9 @@ export default function EventsManagementPage() {
     
     // Fetch programs dynamically
     try {
-      const res = await fetch("/api/admin/events?action=CREATE_DATA");
+      const res = await fetch("/api/admin/events?action=CREATE_DATA", {
+        cache: "no-store"
+      });
       const json = await res.json();
       if (json.success && json.data?.programs) {
         setPrograms(json.data.programs);
@@ -137,6 +141,7 @@ export default function EventsManagementPage() {
     setActionLoading(true);
     try {
       const res = await fetch("/api/admin/events", {
+        cache: "no-store",
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

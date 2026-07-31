@@ -11,7 +11,7 @@ export default function Hero() {
       <div className="absolute inset-0 z-0 overflow-hidden">
         <motion.div
           animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
           className="w-full h-full relative"
         >
           <Image
