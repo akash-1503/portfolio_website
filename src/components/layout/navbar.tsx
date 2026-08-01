@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useTransform, useMotionValue, useSpring, MotionValue } from "framer-motion";
 import { 
-  Home, Activity, Briefcase, Code2, Rocket, Star, Mail, FileText
+  Home, Activity, Briefcase, Code2, Rocket, Star, Mail
 } from "lucide-react";
 import { GithubIcon } from "@/components/icons";
 
@@ -85,7 +85,6 @@ export function Navbar() {
         
         <div className="w-px h-10 bg-border mx-2 self-center" />
 
-        <DockItem key="Resume" item={{ name: "Resume", href: "/resume.pdf", icon: FileText }} mouseX={mouseX} />
         <DockItem key="GitHub" item={{ name: "GitHub", href: "https://github.com/akash-1503", icon: GithubIcon }} mouseX={mouseX} />
       </div>
     </motion.div>

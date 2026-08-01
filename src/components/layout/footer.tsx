@@ -35,7 +35,6 @@ export function Footer() {
             <h4 className="text-heading font-semibold mb-6">Quick Links</h4>
             <ul className="space-y-4 text-paragraph">
               <li><Link href="#projects" className="hover:text-primary transition-colors">Projects</Link></li>
-              <li><a href="/resume.pdf" target="_blank" className="hover:text-primary transition-colors">Resume</a></li>
               <li><a href="https://github.com/akash-1503" target="_blank" className="hover:text-primary transition-colors">GitHub</a></li>
               <li><a href="https://www.linkedin.com/in/akash-dandale-309644263" target="_blank" className="hover:text-primary transition-colors">LinkedIn</a></li>
               <li><Link href="#contact" className="hover:text-primary transition-colors">Contact</Link></li>

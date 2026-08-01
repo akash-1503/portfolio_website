@@ -5,12 +5,14 @@ import { ProjectsSection } from "@/components/sections/projects";
 import { HackathonsSection } from "@/components/sections/hackathons";
 import { ExcellenceSection } from "@/components/sections/excellence";
 import { ContactSection } from "@/components/sections/contact";
+import { ToolkitSection } from "@/components/sections/toolkit";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
       <HeroSection />
       <DashboardSection />
+      <ToolkitSection />
       <ExperienceSection />
       <ProjectsSection />
       <HackathonsSection />

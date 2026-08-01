@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Code2, LayoutDashboard, FileText } from "lucide-react";
+import { Code2, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { GithubIcon, LinkedinIcon } from "@/components/icons";
 
@@ -55,55 +55,13 @@ function TypeWriter({ start }: { start: boolean }) {
 }
 
 export function HeroSection() {
-  const [introFinished, setIntroFinished] = React.useState(false);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIntroFinished(true);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
+const [introFinished, setIntroFinished] = React.useState(true);
 
   return (
     <section 
       id="home" 
       className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-12 bg-transparent"
     >
-      {/* Cinematic Intro Overlay */}
-      <AnimatePresence>
-        {!introFinished && (
-          <motion.div
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, filter: "blur(20px)" }}
-              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="relative flex flex-col items-center gap-6"
-            >
-              <div className="absolute inset-0 bg-primary blur-[100px] opacity-10" />
-              <div className="w-20 h-20 rounded-3xl bg-card shadow-xl flex items-center justify-center border border-border relative z-10">
-                <Code2 className="w-10 h-10 text-primary" />
-              </div>
-              <div className="flex flex-col items-center gap-2 relative z-10">
-                <span className="text-xl font-bold tracking-widest text-heading uppercase">Workspace Initializing</span>
-                <div className="w-48 h-1 bg-border rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 1.5, ease: "easeInOut", delay: 0.5 }}
-                    className="h-full bg-primary"
-                  />
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="container relative z-10 px-4 mx-auto w-full max-w-7xl">
         
         <div className="flex flex-col items-center text-center justify-center mt-4 relative w-full h-[600px] md:h-auto md:py-20">
@@ -155,10 +113,6 @@ export function HeroSection() {
                 <Code2 className="w-5 h-5 mr-2 text-paragraph group-hover:text-primary transition-colors" /> Projects Hub
               </Link>
               <div className="flex items-center justify-center gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-                <a href="/resume.pdf" className="w-14 h-14 flex items-center justify-center rounded-2xl bg-card border border-border text-heading hover:bg-section hover:border-primary/50 hover:text-primary transition-colors shadow-sm group relative">
-                  <FileText className="w-5 h-5" />
-                  <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform bg-heading text-white text-xs py-1 px-3 rounded-lg">Resume</span>
-                </a>
                 <a href="https://github.com/akash-1503" target="_blank" className="w-14 h-14 flex items-center justify-center rounded-2xl bg-card border border-border text-heading hover:bg-section hover:border-primary/50 hover:text-primary transition-colors shadow-sm group relative">
                   <GithubIcon className="w-6 h-6" />
                   <span className="absolute -top-10 scale-0 group-hover:scale-100 transition-transform bg-heading text-white text-xs py-1 px-3 rounded-lg">GitHub</span>
