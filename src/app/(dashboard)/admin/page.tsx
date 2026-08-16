@@ -113,7 +113,7 @@ export default function AdminDashboard() {
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-extrabold text-gray-900 tracking-tight"
           >
-            Dashboard Overview
+            Admin Panel Dashboard Overview
           </motion.h1>
           <motion.p 
             initial={{ opacity: 0, y: 10 }}

@@ -18,6 +18,12 @@ enum Role {
   USER
 }
 
+enum GalleryType {
+  IMAGE
+  VIDEO
+  STORY
+}
+
 enum NotificationType {
   TASK
   EVENT
@@ -104,7 +110,7 @@ model NGO {
   phone String?
 
   website String?
-  
+
   address String?
 
   city String?
@@ -136,6 +142,8 @@ model NGO {
   events Event[]
 
   donations Donation[]
+
+  galleryPosts GalleryPost[]
 
   //////////////////////////////////////////////////////
 
@@ -195,6 +203,8 @@ model User {
 
   createdEvents Event[] @relation("EventCreator")
 
+  createdGalleryPosts GalleryPost[] @relation("GalleryCreator")
+
   /////////////////////////////////////////////////////
 
   sentMessages Message[] @relation("Sender")
@@ -206,6 +216,8 @@ model User {
   sessions Session[]
 
   conversationMembers ConversationMember[]
+
+  eventRegistrations EventRegistration[]
 
   /////////////////////////////////////////////////////
 
@@ -277,7 +289,7 @@ model VerificationToken {
 
 model Notification {
   type NotificationType
-  id String @id @default(cuid())
+  id   String           @id @default(cuid())
 
   userId String
 
@@ -290,7 +302,6 @@ model Notification {
   isRead Boolean @default(false)
 
   createdAt DateTime @default(now())
-  
 
   @@index([userId])
 }
@@ -403,6 +414,8 @@ model Attendance {
   remarks String?
 
   createdAt DateTime @default(now())
+
+  @@unique([volunteerId, eventId])
 }
 
 //////////////////////////////////////////////////////////
@@ -412,7 +425,7 @@ model Certificate {
   id String @id @default(cuid())
 
   volunteerId String
-  volunteer Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
 
   title String
 
@@ -423,13 +436,13 @@ model Certificate {
   type CertificateType
 
   programId String?
-  program Program? @relation(fields: [programId], references: [id])
+  program   Program? @relation(fields: [programId], references: [id])
 
   campaignId String?
-  campaign Campaign? @relation(fields: [campaignId], references: [id])
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
 
   eventId String?
-  event Event? @relation(fields: [eventId], references: [id])
+  event   Event?  @relation(fields: [eventId], references: [id])
 
   certificateUrl String?
 
@@ -447,6 +460,7 @@ model Certificate {
   @@index([status])
   @@index([type])
 }
+
 //////////////////////////////////////////////////////////
 // PROGRAM
 //////////////////////////////////////////////////////////
@@ -462,6 +476,8 @@ model Program {
   category String
 
   description String? @db.Text
+
+  objective String? @db.Text
 
   coordinator String?
 
@@ -496,9 +512,9 @@ model Program {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  campaigns  Campaign[]
-  events     Event[]
-  volunteers VolunteerProgram[]
+  campaigns    Campaign[]
+  events       Event[]
+  volunteers   VolunteerProgram[]
   certificates Certificate[]
 
   @@index([ngoId])
@@ -546,8 +562,9 @@ model Campaign {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  donations Donation[]
-  events    Event[]
+  donations    Donation[]
+  events       Event[]
+  galleryPosts GalleryPost[]
   certificates Certificate[]
 
   @@index([ngoId])
@@ -625,12 +642,61 @@ model Event {
   isDeleted Boolean   @default(false)
   deletedAt DateTime?
 
-  volunteers VolunteerEvent[]
-  attendance Attendance[]
-  certificates Certificate[]
+  volunteers         VolunteerEvent[]
+  attendance         Attendance[]
+  certificates       Certificate[]
+  registrations EventRegistration[]
+  galleryPosts       GalleryPost[]
 
   @@index([ngoId])
   @@index([status])
+}
+
+//////////////////////////////////////////////////////////
+// GalleryPost
+//////////////////////////////////////////////////////////
+model GalleryPost {
+  id String @id @default(cuid())
+
+  ngoId String
+  ngo   NGO    @relation(fields: [ngoId], references: [id], onDelete: Cascade)
+
+  title String
+
+  description String? @db.Text
+
+  type GalleryType
+
+  mediaUrl     String?
+  thumbnailUrl String?
+
+  category String?
+
+  isFeatured  Boolean @default(false)
+  isPublished Boolean @default(false)
+
+  eventId String?
+  event   Event?  @relation(fields: [eventId], references: [id])
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+
+  createdBy String
+  creator   User   @relation("GalleryCreator", fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  publishedAt DateTime?
+
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+
+  @@index([ngoId])
+  @@index([type])
+  @@index([isPublished])
+  @@index([isFeatured])
+  @@index([createdAt])
 }
 
 //////////////////////////////////////////////////////////
@@ -733,6 +799,33 @@ model ConversationMember {
   joinedAt DateTime @default(now())
 
   @@unique([conversationId, userId])
+}
+
+//////////////////////////////////////////////////////////
+// EventRegistration
+//////////////////////////////////////////////////////////
+
+model EventRegistration {
+  id String @id @default(cuid())
+
+  // User who registered for the event
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Event for which the user registered
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Date and time when registration was created
+  registeredAt DateTime @default(now())
+
+  // Prevent the same user from registering
+  // for the same event more than once
+  @@unique([userId, eventId])
+  // Useful indexes for API queries
+  @@index([userId])
+  @@index([eventId])
+  @@index([registeredAt])
 }
 
 //////////////////////////////////////////////////////////

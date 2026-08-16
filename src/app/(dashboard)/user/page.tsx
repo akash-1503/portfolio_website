@@ -1,298 +1,481 @@
 "use client";
 
-import { motion } from "framer-motion";
-import CountUp from "react-countup";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Variants } from "framer-motion";
 import { 
-  Heart, Target, Users, TreeDeciduous, 
-  Stethoscope, Award, Flame, Star, 
-  ArrowRight, BookOpen, HandHeart, 
-  Calendar, Newspaper, MapPin, ChevronRight
+  Heart, Calendar, Target, Award, Bell, 
+  ArrowRight, Activity, MapPin, Clock, 
+  CreditCard, Image as ImageIcon, ShieldCheck, 
+  AlertCircle, ChevronRight
 } from "lucide-react";
-import React from "react";
+import Link from "next/link";
 
-const kpiCards = [
-  { title: "Total Donated", value: 125000, prefix: "₹", icon: Heart, color: "text-rose-500", bg: "bg-rose-500/10", trend: "+12% this year", up: true },
-  { title: "Campaigns", value: 15, prefix: "", icon: Target, color: "text-[#16A34A]", bg: "bg-[#16A34A]/10", trend: "3 active", up: true },
-  { title: "Children Helped", value: 420, prefix: "", icon: Users, color: "text-[#F97316]", bg: "bg-[#F97316]/10", trend: "+45 this month", up: true },
-  { title: "Meals Sponsored", value: 1200, prefix: "", icon: HandHeart, color: "text-amber-500", bg: "bg-amber-500/10", trend: "+200 this week", up: true },
-  { title: "Trees Planted", value: 85, prefix: "", icon: TreeDeciduous, color: "text-emerald-500", bg: "bg-emerald-500/10", trend: "Goal: 100", up: true },
-  { title: "Medical Camps", value: 4, prefix: "", icon: Stethoscope, color: "text-blue-500", bg: "bg-blue-500/10", trend: "1 upcoming", up: true },
-  { title: "Certificates", value: 12, prefix: "", icon: Award, color: "text-purple-500", bg: "bg-purple-500/10", trend: "2 new", up: true },
-  { title: "Reward Points", value: 8500, prefix: "", icon: Star, color: "text-indigo-500", bg: "bg-indigo-500/10", trend: "Platinum Tier", up: true },
-];
+// --- TYPESCRIPT INTERFACES (Matching Backend Payload) ---
+interface Donation {
+  id: string;
+  amount: number;
+  campaignTitle: string;
+  date: string;
+  status: string;
+}
 
-const impactStats = [
-  { label: "Children Educated", value: 25, total: 30, color: "#8B5CF6" },
-  { label: "Families Supported", value: 12, total: 15, color: "#3B82F6" },
-  { label: "Books Distributed", value: 150, total: 200, color: "#F59E0B" },
-  { label: "Scholarships", value: 3, total: 5, color: "#10B981" },
-];
+interface RegisteredEvent {
+  id: string;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  status: string;
+}
 
-// Simple SVG mini line graph
-const MiniGraph = ({ color }: { color: string }) => (
-  <svg width="40" height="16" viewBox="0 0 40 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0 12C4 12 8 8 12 10C16 12 20 4 24 6C28 8 32 2 36 4C38 5 39 8 40 8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+interface Notification {
+  id: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+  type: "DONATION" | "EVENT" | "GENERAL";
+}
 
-const CircularProgressSmall = ({ value, total, color }: { value: number, total: number, color: string }) => {
-  const radius = 18;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / total) * circumference;
+interface UserDashboardData {
+  user: {
+    fullName: string;
+    memberSince: string;
+    totalDonated: number;
+    impactScore: number;
+  };
+  stats: {
+    activePrograms: number;
+    upcomingEvents: number;
+    liveCampaigns: number;
+    certificatesEarned: number;
+  };
+  recentDonations: Donation[];
+  registeredEvents: RegisteredEvent[];
+  notifications: Notification[];
+}
 
-  return (
-    <div className="relative w-12 h-12 flex items-center justify-center">
-      <svg className="w-full h-full transform -rotate-90">
-        <circle cx="24" cy="24" r={radius} stroke="currentColor" strokeWidth="4" fill="transparent" className="text-slate-100" />
-        <motion.circle
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset }}
-          transition={{ duration: 1.5, ease: "easeOut" }}
-          cx="24" cy="24" r={radius} stroke={color} strokeWidth="4" fill="transparent"
-          strokeDasharray={circumference} strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-};
+export default function UserDashboardPage() {
+  // --- STATE ---
+  const [data, setData] = useState<UserDashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-export default function UserDashboard() {
-  return (
-    <div className="flex flex-col xl:flex-row gap-6 w-full">
-      
-      {/* MAIN CONTENT (Left) */}
-      <div className="flex-1 flex flex-col gap-6">
-        
-        {/* Top Hero Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-gradient-to-br from-[#0F172A] to-slate-900 rounded-3xl p-8 lg:p-10 text-white shadow-2xl"
+  // --- FETCH DATA (Workflow: JWT -> Route -> Service -> JSON) ---
+  useEffect(() => {
+  const loadDashboard = async () => {
+    setLoading(true);
+
+    // Temporary frontend data
+    const mockData: UserDashboardData = {
+      user: {
+        fullName: "User",
+        memberSince: "Jan 2024",
+        totalDonated: 1500,
+        impactScore: 82,
+      },
+
+      stats: {
+        activePrograms: 3,
+        upcomingEvents: 5,
+        liveCampaigns: 4,
+        certificatesEarned: 2,
+      },
+
+      recentDonations: [
+        {
+          id: "1",
+          amount: 1000,
+          campaignTitle: "Education Support",
+          date: "10 Aug 2026",
+          status: "Completed",
+        },
+        {
+          id: "2",
+          amount: 500,
+          campaignTitle: "Food Distribution",
+          date: "05 Aug 2026",
+          status: "Completed",
+        },
+      ],
+
+      registeredEvents: [
+        {
+          id: "1",
+          title: "Community Education Drive",
+          date: "15 Aug 2026",
+          time: "10:00 AM",
+          location: "Community Hall",
+          status: "Upcoming",
+        },
+        {
+          id: "2",
+          title: "Tree Plantation Campaign",
+          date: "20 Aug 2026",
+          time: "08:30 AM",
+          location: "City Garden",
+          status: "Upcoming",
+        },
+      ],
+
+      notifications: [
+        {
+          id: "1",
+          message: "Your donation was successfully processed.",
+          time: "2h ago",
+          isRead: false,
+          type: "DONATION",
+        },
+        {
+          id: "2",
+          message: "New event added to your dashboard.",
+          time: "1d ago",
+          isRead: true,
+          type: "EVENT",
+        },
+      ],
+    };
+
+    // Simulate loading
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    setData(mockData);
+    setLoading(false);
+  };
+
+  loadDashboard();
+}, []);
+
+  // --- HELPERS ---
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
+
+  const getFirstName = (fullName: string) => {
+    return fullName ? fullName.split(" ")[0] : "Supporter";
+  };
+
+  // --- ANIMATION VARIANTS ---
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
+  // --- LOADING STATE ---
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-8 min-h-screen pb-10 p-4 animate-pulse">
+        <div className="h-24 bg-white/50 rounded-[2rem] w-full max-w-2xl"></div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white/50 rounded-[2rem]"></div>)}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 h-96 bg-white/50 rounded-[2.5rem]"></div>
+          <div className="h-96 bg-white/50 rounded-[2.5rem]"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- ERROR STATE ---
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="w-16 h-16 text-red-400 mb-4 opacity-50" />
+        <h2 className="text-xl font-extrabold text-gray-800">Unable to load dashboard</h2>
+        <p className="text-gray-500 font-bold mt-2">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-6 px-6 py-2.5 bg-[#f97316] text-white rounded-full font-bold hover:bg-[#ea580c] shadow-md transition-colors"
         >
-          {/* Abstract leaf shapes / background */}
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#16A34A] opacity-20 rounded-full blur-[80px]"></div>
-          <div className="absolute bottom-0 right-10 w-64 h-64 bg-[#F97316] opacity-10 rounded-full blur-[60px]"></div>
-          
-          <svg className="absolute right-0 bottom-0 opacity-10 w-80 h-80 transform translate-x-1/4 translate-y-1/4" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <path fill="#FFFFFF" d="M47.7,-57.2C59.9,-46.3,67,-29.4,69.5,-12.3C72,4.8,70,22.2,60.8,36C51.6,49.8,35.2,59.9,16.5,65.3C-2.2,70.7,-23.1,71.4,-38.9,62.8C-54.7,54.2,-65.4,36.3,-70,17.2C-74.6,-1.9,-73.1,-22.2,-62.4,-37.2C-51.7,-52.2,-31.8,-61.9,-14.2,-64.9C3.4,-67.9,21,-64.1,47.7,-57.2Z" transform="translate(100 100)" />
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative flex flex-col gap-8 min-h-screen pb-10 overflow-x-hidden">
+      
+      {/* ==================================================== */}
+      {/* --- CRAFT & DOTTED LINE BACKGROUND ANIMATIONS --- */}
+      {/* ==================================================== */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        
+        {/* Top Right: Dotted Loop & Floating Star */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] opacity-50 mix-blend-multiply">
+          <svg className="absolute w-full h-full" viewBox="0 0 200 200" fill="none">
+            <path d="M 150 0 C 150 100, 50 100, 0 200" stroke="#f97316" strokeWidth="1.5" strokeDasharray="4 6" strokeLinecap="round" opacity="0.5" />
+            <path d="M 200 50 C 100 50, 100 150, 0 150" stroke="#16a34a" strokeWidth="1.5" strokeDasharray="4 6" strokeLinecap="round" opacity="0.5" />
           </svg>
-
-          <div className="relative z-10">
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-sm font-bold mb-6 border border-white/10">
-                  <Flame className="w-4 h-4 text-[#F97316]" />
-                  <span className="text-white">12 Month Donation Streak</span>
-                </div>
-                <h1 className="text-3xl md:text-5xl font-extrabold mb-4 tracking-tight leading-tight">Thank you for making a difference ❤️</h1>
-                <p className="text-slate-300 font-medium text-lg max-w-xl leading-relaxed">
-                  Michael, your consistent support has transformed lives. Every contribution you make ripples through our community, bringing hope and tangible change.
-                </p>
-              </div>
-
-              {/* Badges / Quick Stats */}
-              <div className="grid grid-cols-2 gap-4 min-w-[240px]">
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white/15 transition-colors">
-                  <Award className="w-8 h-8 text-amber-400 mb-2" />
-                  <span className="text-xl font-bold text-white">Platinum</span>
-                  <span className="text-xs text-slate-300 font-medium">Membership Level</span>
-                </div>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white/15 transition-colors">
-                  <Star className="w-8 h-8 text-[#16A34A] mb-2" />
-                  <span className="text-xl font-bold text-white">98.5</span>
-                  <span className="text-xs text-slate-300 font-medium">Impact Score</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Horizontal Stats Bar */}
-            <div className="mt-8 pt-8 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-1">Total Donations</p>
-                <p className="text-2xl font-bold text-white">₹<CountUp end={125000} duration={2} separator="," /></p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-1">Lives Impacted</p>
-                <p className="text-2xl font-bold text-white"><CountUp end={842} duration={2} separator="," />+</p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-1">Campaigns Supported</p>
-                <p className="text-2xl font-bold text-white"><CountUp end={15} duration={2} /></p>
-              </div>
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-1">Volunteer Hours</p>
-                <p className="text-2xl font-bold text-white"><CountUp end={42} duration={2} /> hrs</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {kpiCards.map((card, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 * index }}
-              className="bg-white rounded-3xl p-5 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-1 transition-all group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-slate-50 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500" />
-              
-              <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className={`p-3 rounded-2xl ${card.bg} ${card.color}`}>
-                  <card.icon className="w-5 h-5" />
-                </div>
-                <div className="flex flex-col items-end">
-                  <MiniGraph color={card.up ? "#16A34A" : "#ef4444"} />
-                  <span className="text-[10px] font-bold text-slate-400 mt-1">{card.trend}</span>
-                </div>
-              </div>
-              
-              <div className="relative z-10">
-                <h3 className="text-slate-500 font-semibold text-sm mb-1">{card.title}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-extrabold text-[#0F172A]">
-                    {card.prefix}<CountUp end={card.value} duration={2} separator="," />
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+          <motion.div
+            animate={{ y: [-10, 10, -10], rotate: [0, 15, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-20 right-20"
+          >
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
+              <path d="M12 2L15 9L22 10L17 15L18.5 22L12 18L5.5 22L7 15L2 10L9 9L12 2Z" fill="#fb923c" fillOpacity="0.8" stroke="#ea580c" strokeWidth="1"/>
+            </svg>
+          </motion.div>
         </div>
 
-        {/* Specific Impact Dashboards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white rounded-3xl p-6 lg:p-8 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold text-[#0F172A]">Your Direct Impact</h2>
-              <p className="text-sm text-slate-500 font-medium mt-1">Milestones you've helped us achieve this year.</p>
-            </div>
-            <button className="hidden sm:flex text-sm font-bold text-[#16A34A] hover:text-[#16A34A]/80 items-center gap-1 group">
-              View Detailed Report <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {impactStats.map((item, index) => (
-              <div key={index} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-slate-200 transition-colors">
-                <CircularProgressSmall value={item.value} total={item.total} color={item.color} />
-                <div className="flex flex-col">
-                  <span className="text-lg font-bold text-[#0F172A]"><CountUp end={item.value} duration={2} /></span>
-                  <span className="text-xs font-semibold text-slate-500">{item.label}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        {/* Bottom Left: Wavy Dotted Path & Paper Plane */}
+        <div className="absolute top-[40%] -left-20 w-[500px] h-[300px] opacity-40 mix-blend-multiply">
+          <svg className="absolute w-full h-full overflow-visible" viewBox="0 0 500 300" fill="none">
+            <path d="M 0 150 Q 125 0, 250 150 T 500 150" stroke="#3b82f6" strokeWidth="2" strokeDasharray="6 8" strokeLinecap="round" opacity="0.4" />
+          </svg>
+          <motion.div
+            animate={{ x: [-20, 20, -20], y: [-10, 10, -10], rotate: [-5, 5, -5] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-[45%] left-[30%]"
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="transform rotate-12 drop-shadow-md">
+              <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </motion.div>
+        </div>
 
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="w-full xl:w-[340px] flex flex-col gap-6">
-        
-        {/* Recommended Campaigns */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)] relative overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg text-[#0F172A]">Recommended</h3>
-            <button className="text-slate-400 hover:text-[#16A34A] transition-colors">
-              <ChevronRight className="w-5 h-5" />
+      {/* ==================================================== */}
+      {/* --- PAGE HEADER --- */}
+      {/* ==================================================== */}
+      <motion.div 
+        variants={containerVariants} initial="hidden" animate="show"
+        className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6 mt-4"
+      >
+        <div>
+          <motion.h1 variants={itemVariants} className="text-3xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+            {getGreeting()}, {getFirstName(data.user.fullName)} ✨
+          </motion.h1>
+          <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-3 mt-4">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-extrabold uppercase tracking-widest border border-blue-100">
+              <ShieldCheck className="w-3.5 h-3.5" /> Community Supporter
+            </span>
+            <span className="text-[12px] font-bold text-gray-400">
+              Member Since: <strong className="text-gray-700">{data.user.memberSince}</strong>
+            </span>
+          </motion.div>
+        </div>
+
+        <motion.div variants={itemVariants}>
+          <Link href="/user/donate">
+            <button className="flex items-center gap-2 px-8 py-3.5 rounded-full font-bold text-[13px] transition-all transform hover:-translate-y-0.5 bg-[#f97316] text-white shadow-[0_8px_20px_rgba(249,115,22,0.25)] hover:bg-[#ea580c]">
+              <Heart className="w-4 h-4 fill-white" /> Make a Donation
             </button>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Campaign Item */}
-            <div className="group cursor-pointer">
-              <div className="w-full h-32 rounded-2xl bg-slate-200 mb-3 overflow-hidden relative">
-                <img src="https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=600&auto=format&fit=crop" alt="Campaign" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-3 left-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded-lg text-[10px] font-bold text-white border border-white/20">
-                  Ending in 3 days
-                </div>
-              </div>
-              <h4 className="font-bold text-[#0F172A] text-sm group-hover:text-[#16A34A] transition-colors leading-tight">Emergency Food Relief for Flood Victims</h4>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex-1 mr-4">
-                  <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1 overflow-hidden">
-                    <div className="bg-[#16A34A] h-1.5 rounded-full w-[75%]"></div>
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-500">75% Funded</span>
-                </div>
-                <button className="px-3 py-1 bg-[#16A34A]/10 text-[#16A34A] rounded-lg text-xs font-bold hover:bg-[#16A34A] hover:text-white transition-colors">
-                  Donate
-                </button>
-              </div>
+          </Link>
+        </motion.div>
+      </motion.div>
+
+      {/* ==================================================== */}
+      {/* --- STATS OVERVIEW (ROW 1) --- */}
+      {/* ==================================================== */}
+      <motion.div variants={containerVariants} initial="hidden" animate="show" className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: "Total Impact", value: `₹${(data.user.totalDonated / 1000).toFixed(1)}k`, icon: Heart, color: "text-[#f97316]", bg: "bg-orange-50" },
+          { label: "Active Programs", value: data.stats.activePrograms, icon: Target, color: "text-blue-500", bg: "bg-blue-50" },
+          { label: "Upcoming Events", value: data.stats.upcomingEvents, icon: Calendar, color: "text-[#16a34a]", bg: "bg-green-50" },
+          { label: "Certificates", value: data.stats.certificatesEarned, icon: Award, color: "text-purple-500", bg: "bg-purple-50" },
+        ].map((stat, i) => (
+          <motion.div key={i} variants={itemVariants} className="bg-white/80 backdrop-blur-xl rounded-[2rem] p-6 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-transform group">
+            <div className={`w-12 h-12 rounded-[1.2rem] ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+              <stat.icon className="w-6 h-6" />
             </div>
-          </div>
-        </motion.div>
+            <h3 className="text-3xl font-extrabold text-gray-900">{stat.value}</h3>
+            <p className="text-[11px] font-extrabold text-gray-400 mt-1 uppercase tracking-widest">{stat.label}</p>
+          </motion.div>
+        ))}
+      </motion.div>
 
-        {/* Impact Story */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-[#16A34A] to-emerald-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-xl translate-y-1/3 -translate-x-1/3"></div>
+      {/* ==================================================== */}
+      {/* --- MAIN DASHBOARD GRID --- */}
+      {/* ==================================================== */}
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* LEFT COLUMN (Span 2) */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
           
-          <BookOpen className="w-6 h-6 text-white/80 mb-3" />
-          <h3 className="font-bold text-lg mb-2 leading-tight">Your Impact in Action</h3>
-          <p className="text-white/80 text-sm mb-4 leading-relaxed">
-            "Because of your recent contribution to the Education Drive, 15 young girls in rural Rajasthan received full-year scholarships."
-          </p>
-          <button className="flex items-center gap-2 text-sm font-bold text-white hover:text-emerald-100 transition-colors group">
-            Read Full Story <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
-        </motion.div>
+          {/* Registered Events (Dotted Line Vertical Timeline Design) */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-[#16a34a]" /> Registered Events
+              </h2>
+              <Link href="/user/events">
+                <button className="text-[11px] font-extrabold text-[#16a34a] hover:text-[#15803d] flex items-center gap-1 uppercase tracking-widest">
+                  View All <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </Link>
+            </div>
 
-        {/* Upcoming Events */}
-        <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_24px_rgba(0,0,0,0.02)]"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-lg text-[#0F172A]">Upcoming Events</h3>
-          </div>
-          <div className="space-y-4">
-            <div className="flex gap-3 group cursor-pointer">
-              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 group-hover:border-[#F97316]/30 group-hover:bg-[#F97316]/5 transition-colors">
-                <span className="text-[10px] font-bold text-[#F97316] uppercase">Oct</span>
-                <span className="text-lg font-black text-[#0F172A]">12</span>
+            {data.registeredEvents.length === 0 ? (
+               <div className="py-10 flex flex-col items-center justify-center text-center">
+                 <Calendar className="w-12 h-12 text-gray-300 mb-3" />
+                 <p className="text-gray-500 font-bold text-[14px]">No upcoming events.</p>
+                 <Link href="/user/events" className="mt-3 px-5 py-2 bg-green-50 text-[#16a34a] rounded-full text-[12px] font-extrabold transition-colors hover:bg-green-100">
+                   Explore Events
+                 </Link>
+               </div>
+            ) : (
+              <div className="relative pl-6 border-l-2 border-dashed border-gray-200 space-y-8">
+                {data.registeredEvents.slice(0, 3).map((event) => (
+                  <div key={event.id} className="relative">
+                    {/* Timeline Dot */}
+                    <div className="absolute -left-[31px] w-4 h-4 rounded-full border-4 border-white bg-[#16a34a] shadow-[0_0_0_4px_rgba(22,163,74,0.1)]" />
+                    
+                    <div className="p-5 rounded-[1.5rem] bg-gray-50/50 border border-gray-100 hover:border-green-200 transition-colors group">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[12px] font-extrabold text-[#16a34a] mb-1 block">{event.date} • {event.time}</span>
+                          <h3 className="text-[16px] font-extrabold text-gray-900 group-hover:text-[#16a34a] transition-colors">
+                            {event.title}
+                          </h3>
+                          <p className="text-[12px] font-bold text-gray-500 flex items-center gap-1.5 mt-2">
+                            <MapPin className="w-3.5 h-3.5" /> {event.location}
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-[10px] font-extrabold uppercase tracking-widest text-gray-500 shadow-sm whitespace-nowrap">
+                          {event.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-[#0F172A] text-sm group-hover:text-[#F97316] transition-colors">Annual Gala Dinner</h4>
-                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" /> City Convention Center</p>
-              </div>
+            )}
+          </motion.div>
+
+          {/* Recent Donations */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-[#f97316]" /> Recent Donations
+              </h2>
             </div>
             
-            <div className="flex gap-3 group cursor-pointer">
-              <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 group-hover:border-[#16A34A]/30 group-hover:bg-[#16A34A]/5 transition-colors">
-                <span className="text-[10px] font-bold text-[#16A34A] uppercase">Oct</span>
-                <span className="text-lg font-black text-[#0F172A]">24</span>
+            {data.recentDonations.length === 0 ? (
+               <div className="py-8 text-center">
+                 <p className="text-gray-500 font-bold text-[13px]">You haven't made any donations yet.</p>
+               </div>
+            ) : (
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse whitespace-nowrap">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Campaign</th>
+                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Date</th>
+                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Amount</th>
+                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {data.recentDonations.slice(0, 4).map((donation) => (
+                      <tr key={donation.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3 px-4 text-[13px] font-extrabold text-gray-900">{donation.campaignTitle}</td>
+                        <td className="py-3 px-4 text-[12px] font-bold text-gray-500">{donation.date}</td>
+                        <td className="py-3 px-4 text-[13px] font-extrabold text-[#16a34a]">₹{donation.amount.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right">
+                          <span className={`px-2.5 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-widest border ${
+                            donation.status === 'SUCCESS' ? 'bg-green-50 text-[#16a34a] border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'
+                          }`}>
+                            {donation.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div className="flex-1">
-                <h4 className="font-bold text-[#0F172A] text-sm group-hover:text-[#16A34A] transition-colors">Mega Health Camp</h4>
-                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><MapPin className="w-3 h-3" /> Greenfield Village</p>
-              </div>
-            </div>
-          </div>
-          <button className="w-full mt-5 py-2.5 bg-slate-50 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-100 hover:text-[#0F172A] transition-colors">
-            View All Events
-          </button>
-        </motion.div>
+            )}
+          </motion.div>
 
+        </div>
+
+        {/* RIGHT COLUMN (Span 1) */}
+        <div className="flex flex-col gap-8">
+          
+          {/* Notifications Panel */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col h-full max-h-[500px]"
+          >
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
+              <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                <Bell className="w-4 h-4 text-blue-500" /> Notifications
+              </h2>
+              {data.notifications.some(n => !n.isRead) && (
+                <span className="w-2 h-2 rounded-full bg-[#f97316] animate-pulse" />
+              )}
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+              {data.notifications.length === 0 ? (
+                <div className="p-6 text-center text-[12px] font-bold text-gray-400">No new notifications.</div>
+              ) : (
+                <div className="flex flex-col divide-y divide-gray-50">
+                  {data.notifications.map((notif) => (
+                    <div key={notif.id} className={`p-4 flex gap-3 transition-colors hover:bg-gray-50 ${!notif.isRead ? 'bg-blue-50/30' : ''}`}>
+                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center border ${
+                        notif.type === 'DONATION' ? 'bg-orange-50 text-[#f97316] border-orange-100' :
+                        notif.type === 'EVENT' ? 'bg-green-50 text-[#16a34a] border-green-100' :
+                        'bg-blue-50 text-blue-500 border-blue-100'
+                      }`}>
+                        {notif.type === 'DONATION' ? <Heart className="w-3.5 h-3.5" /> : 
+                         notif.type === 'EVENT' ? <Calendar className="w-3.5 h-3.5" /> : 
+                         <Activity className="w-3.5 h-3.5" />}
+                      </div>
+                      <div className="flex flex-col">
+                        <p className={`text-[12px] leading-relaxed ${!notif.isRead ? 'font-extrabold text-gray-900' : 'font-bold text-gray-600'}`}>
+                          {notif.message}
+                        </p>
+                        <span className="text-[10px] font-extrabold text-gray-400 mt-1 uppercase tracking-widest">{notif.time}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+
+          {/* Quick Links / Gallery Teaser */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
+            className="bg-gradient-to-br from-[#16a34a] to-[#4ade80] rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgba(22,163,74,0.2)] text-white relative overflow-hidden group"
+          >
+            {/* Background SVG craft */}
+            <svg className="absolute top-0 right-0 w-48 h-48 opacity-20 transform translate-x-10 -translate-y-10 group-hover:rotate-12 transition-transform duration-700" viewBox="0 0 100 100" fill="none">
+              <path d="M 10 50 Q 50 10, 90 50 T 90 90 Q 50 90, 10 90 Z" stroke="white" strokeWidth="4" strokeDasharray="4 4" />
+            </svg>
+            
+            <div className="relative z-10">
+              <ImageIcon className="w-8 h-8 mb-4 text-white/80" />
+              <h3 className="text-xl font-extrabold leading-tight mb-2">NGO Gallery</h3>
+              <p className="text-[13px] font-bold text-green-50 mb-6 opacity-90">
+                See the impact of our recent programs and your contributions in action.
+              </p>
+              <Link href="/user/gallery">
+                <button className="px-5 py-2.5 bg-white text-[#16a34a] rounded-full text-[12px] font-extrabold shadow-sm hover:bg-green-50 transition-colors flex items-center gap-2">
+                  View Gallery <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </Link>
+            </div>
+          </motion.div>
+
+        </div>
       </div>
     </div>
   );

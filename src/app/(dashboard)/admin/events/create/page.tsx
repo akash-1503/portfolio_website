@@ -270,12 +270,12 @@ export default function CreateEventPage() {
             </div>
             
             <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Short Summary</label>
+              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Short Summary*</label>
               <textarea name="summary" value={formData.summary} onChange={handleChange} rows={2} placeholder="A brief 1-2 sentence description..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
             </div>
             
             <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Detailed Description *</label>
+              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Main Objective *</label>
               <textarea name="description" value={formData.description} onChange={handleChange} required rows={5} placeholder={`Full ${formData.recordType.toLowerCase()} details, agenda, and expectations...`} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
             </div>
           </SectionCard>
