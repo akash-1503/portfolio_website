@@ -25,10 +25,64 @@ import {
   Award,
   CreditCard,
   Form,
+  Building2,
+  UserCog,
+  AlertTriangle,
+  Activity,
+  Menu,
+  X,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import Navbar from "../Navbar/Navbar";
 
 const getRoleConfig = (pathname: string) => {
+  if (pathname?.startsWith("/superadmin")) {
+    return {
+      id: "superadmin",
+      badgeTitle: "SUPER ADMIN PORTAL",
+      badgeSubtitle: "System Administrator",
+      icon: Shield,
+
+      accentColor: "#7C3AED",
+      accentBg: "bg-violet-50",
+      accentBgHover: "hover:bg-violet-50",
+      accentBgActive: "bg-[#7C3AED]",
+      accentText: "text-[#7C3AED]",
+      accentTextHover: "hover:text-[#7C3AED]",
+      accentBorder: "border-[#7C3AED]",
+      accentBorderHover: "hover:border-[#7C3AED]",
+
+      buttonShadow:
+        "shadow-[0_8px_20px_rgba(124,58,237,0.25)]",
+
+      indicatorColor: "bg-violet-500",
+      badgeBorder: "border-violet-100",
+
+      links: [
+        {
+          name: "Dashboard",
+          href: "/superadmin",
+          icon: LayoutDashboard,
+        },
+        {
+          name: "NGO Management",
+          href: "/superadmin/ngo",
+          icon: Building2,
+        },
+        {
+          name: "Admin Management",
+          href: "/superadmin/admins",
+          icon: UserCog,
+        },
+        {
+          name: "System Errors",
+          href: "/superadmin/system-errors",
+          icon: AlertTriangle,
+        },
+      ],
+    };
+  }
+
   if (pathname?.startsWith("/admin")) {
     return {
       id: "admin",
@@ -192,7 +246,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -234,86 +288,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="h-screen w-full bg-[#fafafa] font-sans flex flex-col text-gray-900 overflow-hidden">
 
       {/* --- TOP NAVBAR --- */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-6 py-4 shadow-sm h-[73px] shrink-0">
-        {/* --- LOGO --- */}
-        <Link href="/" className="flex items-center gap-3 group z-20">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#16a34a] to-green-400 flex items-center justify-center text-white font-extrabold text-base shadow-md group-hover:rotate-12 transition-transform">
-            N
-          </div>
-          <span className="font-extrabold text-xl tracking-tight text-gray-900 drop-shadow-sm hidden sm:block">
-            Nishkam<span className="text-[#f97316]">NGO</span>
-          </span>
-        </Link>
-
-        <div className="relative">
-          <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-3 focus:outline-none"
-          >
-            <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-sm font-bold text-gray-900">{user?.name || "User"}</span>
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{user?.role || "GUEST"}</span>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#16a34a] to-[#3BAF4A] flex items-center justify-center text-white shadow-md">
-              <User className="w-5 h-5" />
-            </div>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
-          </button>
-
-          <AnimatePresence>
-            {isProfileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
-              >
-                <div className="p-4 border-b border-gray-100 bg-gray-50">
-                  <p className="text-sm font-extrabold text-gray-900 truncate">{user?.name || "User Name"}</p>
-                  <p className="text-xs font-bold text-gray-500 truncate">{user?.email || "user@example.com"}</p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase">
-                    {user?.role || "ROLE"}
-                  </span>
-                </div>
-                <div className="p-2 flex flex-col gap-1">
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                  >
-                    <User className="w-4 h-4" />
-                    Profile
-                  </Link>
-                  <Link
-                    href={user?.role ? `/${user.role.toLowerCase()}` : "/"}
-                    onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    Dashboard
-                  </Link>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </header>
+      <Navbar user={user} />
 
       <div className="flex-1 flex overflow-hidden relative">
+        {/* --- MOBILE OVERLAY --- */}
+        <AnimatePresence>
+          {isMobileSidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="md:hidden absolute inset-0 bg-black/40 backdrop-blur-sm z-[70]"
+            />
+          )}
+        </AnimatePresence>
+
         {/* --- SIDEBAR --- */}
         <motion.aside
           initial={{ width: 280 }}
           animate={{ width: isSidebarOpen ? 280 : 88 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="hidden md:flex flex-col bg-white border-r border-gray-100 h-full z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] relative flex-shrink-0"
+          className={`flex flex-col bg-white border-r border-gray-100 h-full shadow-[20px_0_40px_rgba(0,0,0,0.1)] md:shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex-shrink-0 absolute md:relative z-[80] md:z-40 transition-transform duration-300 md:transition-none md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'} [&_span]:md:inline-block`}
+          style={{ width: '280px !important' }}
         >
-          {/* Collapse Toggle Button */}
+          {/* Collapse Toggle Button (Desktop Only) */}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`absolute -right-3.5 top-8 bg-white border border-gray-200 shadow-sm w-7 h-7 rounded-full flex items-center justify-center text-gray-500 transition-colors z-50 hover:bg-gray-50 ${config.accentTextHover}`}
+            className={`hidden md:flex absolute -right-3.5 top-8 bg-white border border-gray-200 shadow-sm w-7 h-7 rounded-full items-center justify-center text-gray-500 transition-colors z-50 hover:bg-gray-50 ${config.accentTextHover}`}
           >
             {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+          
+          {/* Close Button (Mobile Only) */}
+          <button
+            onClick={() => setIsMobileSidebarOpen(false)}
+            className="md:hidden absolute right-4 top-4 bg-white border border-gray-200 shadow-sm w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-50 z-50"
+          >
+            <X className="w-4 h-4" />
           </button>
 
           {/* User Role Badge */}
@@ -337,7 +349,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {config.links.map((link) => {
 
               // Exact match for the base route, loose match for sub-routes
-              const isBaseRoute = ['/admin', '/volunteer', '/user', '/finance', '/content'].includes(link.href);
+              const isBaseRoute = [
+                '/superadmin',
+                '/admin',
+                '/volunteer',
+                '/user',
+              ].includes(link.href);
               const isActive = isBaseRoute
                 ? pathname === link.href
                 : pathname === link.href || pathname?.startsWith(`${link.href}/`);
@@ -371,7 +388,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Footer Sidebar (Settings & Logout) */}
           <div className="p-4 border-t border-gray-50 shrink-0 flex flex-col gap-2">
-            <Link href={['/admin', '/volunteer', '/user', '/finance', '/content'].find(p => pathname?.startsWith(p)) ? `${['/admin', '/volunteer', '/user', '/finance', '/content'].find(p => pathname?.startsWith(p))}/settings` : "/settings"}>
+            <Link
+              href={
+                [
+                  '/superadmin',
+                  '/admin',
+                  '/volunteer',
+                  '/user',
+
+                ].find(p => pathname?.startsWith(p))
+                  ? `${[
+                    '/superadmin',
+                    '/admin',
+                    '/volunteer',
+                    '/user',
+
+                  ].find(p => pathname?.startsWith(p))
+                  }/settings`
+                  : "/settings"
+              }
+            >
               <button
                 className={`w-full flex items-center rounded-xl transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 ${isSidebarOpen ? "px-3 py-3 gap-3" : "justify-center p-3"
                   }`}
@@ -399,7 +435,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#fafafa]">
 
           {/* THEME BACKGROUND MOTIF (Dotted Lines & Crafts) */}
-          <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
 
             {/* Sweeping Dotted Trail */}
             <svg className="absolute w-full h-[600px] opacity-[0.15] top-0 left-0" viewBox="0 0 1200 600" preserveAspectRatio="none">
@@ -444,11 +480,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           </div>
 
-          {/* Children wrapped in relative z-10 to stay above motifs */}
-          <div className="relative z-10 p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full min-h-full">
+          {/* Children wrapped in relative to stay above motifs without creating a stacking context */}
+          <div className="relative p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full min-h-full">
             {children}
           </div>
         </main>
+
+        {/* MOBILE SIDEBAR FLOATING TOGGLE */}
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className={`md:hidden absolute bottom-6 right-6 z-50 ${config.accentBgActive} text-white p-4 rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all`}
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
 
     </div>

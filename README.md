@@ -14,6 +14,9 @@ pnpm dev
 bun dev
 
 npm install react-icons  
+
+npm install bcryptjs
+npm install -D @types/bcryptjs
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

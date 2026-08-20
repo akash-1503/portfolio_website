@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../../lib/prisma";
-import { verifyToken } from "../../../../../lib/jwt";
+import { prisma } from "../../../../../lib/prisma"; 
+import { verifyToken } from "../../../../../lib/jwt"; 
 import { Role } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   try {
     // =====================================================
-    // 1. AUTHENTICATION & VERIFY USER
+    // 1. AUTHENTICATION
     // =====================================================
-    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7).trim()
-      : req.cookies.get("token")?.value || authHeader || "";
+    const token = req.cookies.get("token")?.value ?? "";
 
     if (!token) {
       return NextResponse.json(
@@ -26,6 +23,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // =====================================================
+    // 2. VERIFY USER & AUTHORIZATION
+    // =====================================================
+    if (payload.role !== "USER") {
+      return NextResponse.json(
+        { success: false, message: "Access denied. Invalid role." },
+        { status: 403 }
       );
     }
 
@@ -50,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     // =====================================================
-    // 2. READ REQUEST BODY
+    // 3. READ REQUEST BODY
     // =====================================================
     const body = await req.json();
     const { eventId } = body;
@@ -63,12 +70,12 @@ export async function POST(req: NextRequest) {
     }
 
     // =====================================================
-    // 3. FIND & VALIDATE EVENT
+    // 4. FIND & VALIDATE EVENT
     // =====================================================
     const event = await prisma.event.findFirst({
       where: {
         id: eventId,
-        ngoId: user.ngoId, // Restrict strictly to user's NGO
+        ngoId: user.ngoId, // Crucial: Restrict strictly to user's NGO
         isDeleted: false,
       },
       select: {
@@ -76,7 +83,6 @@ export async function POST(req: NextRequest) {
         title: true,
         status: true,
         startDate: true,
-        registrationDeadline: true,
         maxParticipants: true,
       },
     });
@@ -88,50 +94,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check Status
-    if (event.status !== "UPCOMING") {
-      return NextResponse.json(
-        { success: false, message: "Registration is not available for this event." },
-        { status: 400 }
-      );
-    }
+    // =====================================================
+// 4. VALIDATE EVENT REGISTRATION
+// =====================================================
 
-    // Check Event Date
-    const now = new Date();
-    if (event.startDate <= now) {
-      return NextResponse.json(
-        { success: false, message: "Registration is closed because the event has already started." },
-        { status: 400 }
-      );
-    }
+const now = new Date();
 
-    // Check Registration Deadline
-    if (event.registrationDeadline && now > event.registrationDeadline) {
-      return NextResponse.json(
-        { success: false, message: "Registration deadline has passed." },
-        { status: 400 }
-      );
-    }
+// Event must be UPCOMING or ACTIVE
+if (
+  event.status !== "UPCOMING" &&
+  event.status !== "ACTIVE"
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      message: "Registration is not available for this event.",
+    },
+    { status: 400 }
+  );
+}
 
-    // Check Capacity
-    const registrationCount =
-      event.maxParticipants !== null
-        ? await prisma.eventRegistration.count({
-            where: {
-              eventId: event.id,
-            },
-          })
-        : 0;
+// Capacity check
+if (event.maxParticipants !== null) {
+  const registrationCount =
+    await prisma.eventRegistration.count({
+      where: {
+        eventId: event.id,
+      },
+    });
 
-    if (event.maxParticipants !== null && registrationCount >= event.maxParticipants) {
-      return NextResponse.json(
-        { success: false, message: "This event has reached its maximum capacity." },
-        { status: 409 }
-      );
-    }
+  if (registrationCount >= event.maxParticipants) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "This event has reached its maximum capacity.",
+      },
+      { status: 409 }
+    );
+  }
+}
 
     // =====================================================
-    // 4. CHECK DUPLICATE REGISTRATION
+    // 5. CHECK DUPLICATE REGISTRATION
     // =====================================================
     const existingRegistration = await prisma.eventRegistration.findUnique({
       where: {
@@ -161,7 +165,7 @@ export async function POST(req: NextRequest) {
     }
 
     // =====================================================
-    // 5. CREATE REGISTRATION
+    // 6. CREATE REGISTRATION
     // =====================================================
     const registration = await prisma.eventRegistration.create({
       data: {
@@ -171,6 +175,7 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         registeredAt: true,
+        eventId: true,
         event: {
           select: {
             id: true,
@@ -182,7 +187,7 @@ export async function POST(req: NextRequest) {
     });
 
     // =====================================================
-    // 6. SUCCESS RESPONSE
+    // 7. SUCCESS RESPONSE
     // =====================================================
     return NextResponse.json(
       {
@@ -190,8 +195,13 @@ export async function POST(req: NextRequest) {
         message: "Successfully registered for the event.",
         data: {
           registrationId: registration.id,
+          eventId: registration.eventId,
           registeredAt: registration.registeredAt.toISOString(),
-          eventId: registration.event.id,
+          event: {
+            id: registration.event.id,
+            title: registration.event.title,
+            startDate: registration.event.startDate.toISOString(),
+          },
         },
       },
       { status: 201 }
@@ -200,8 +210,13 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("POST /api/user/events-campaigns/register ERROR:", error);
 
-    // Prisma unique constraint violation (P2002) check
-    if (typeof error === "object" && error !== null && "code" in error && (error as any).code === "P2002") {
+    // Prisma unique constraint violation (P2002) safety catch
+    if (
+      typeof error === "object" && 
+      error !== null && 
+      "code" in error && 
+      (error as any).code === "P2002"
+    ) {
       return NextResponse.json(
         { success: false, message: "You are already registered for this event." },
         { status: 409 }

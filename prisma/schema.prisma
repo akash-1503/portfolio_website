@@ -96,6 +96,13 @@ enum CertificateStatus {
   REVOKED
 }
 
+enum ErrorSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
 //////////////////////////////////////////////////////////
 // NGO
 //////////////////////////////////////////////////////////
@@ -145,6 +152,8 @@ model NGO {
 
   galleryPosts GalleryPost[]
 
+  systemErrors SystemError[]
+
   //////////////////////////////////////////////////////
 
   @@index([name])
@@ -162,6 +171,10 @@ model User {
   ngoId String?
 
   ngo NGO? @relation(fields: [ngoId], references: [id])
+
+  triggeredErrors SystemError[] @relation("TriggeredErrors")
+
+  resolvedErrors SystemError[] @relation("ResolvedErrors")
 
   name String
 
@@ -645,7 +658,7 @@ model Event {
   volunteers         VolunteerEvent[]
   attendance         Attendance[]
   certificates       Certificate[]
-  registrations EventRegistration[]
+  eventRegistrations EventRegistration[]
   galleryPosts       GalleryPost[]
 
   @@index([ngoId])
@@ -874,4 +887,52 @@ model Attachment {
   fileSize Int
 
   createdAt DateTime @default(now())
+}
+
+//////////////////////////////////////////////////////////
+// SystemError
+//////////////////////////////////////////////////////////
+model SystemError {
+  id String @id @default(cuid())
+
+  // NGO that the error belongs to
+  ngoId String?
+  ngo   NGO?    @relation(fields: [ngoId], references: [id])
+
+  // User who triggered the request, if known
+  userId String?
+  user   User?   @relation("TriggeredErrors", fields: [userId], references: [id])
+
+  // API information
+  method     String?
+  endpoint   String?
+  statusCode Int?
+
+  // Error information
+  errorType String?
+  message   String
+  stack     String?
+
+  // Additional debugging information
+  requestId String?
+  metadata  Json?
+
+  // Management
+  severity ErrorSeverity @default(ERROR)
+  resolved Boolean       @default(false)
+
+  resolvedAt DateTime?
+
+  resolvedById String?
+  resolvedBy   User?   @relation("ResolvedErrors", fields: [resolvedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([ngoId])
+  @@index([userId])
+  @@index([resolvedById])
+  @@index([statusCode])
+  @@index([severity])
+  @@index([resolved])
+  @@index([createdAt])
 }

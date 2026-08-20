@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Heart, Menu, X, ChevronDown, User } from "lucide-react";
+import { Search, Heart, Menu, X, ChevronDown, User, LayoutDashboard, LogOut } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
 
 type NavLink = {
   name: string;
@@ -14,26 +15,50 @@ type NavLink = {
 const navLinks: NavLink[] = [
   { name: "Home", href: "/" },
   { name: "About", href: "#about" },
-  { name: "Gallary", href: "#Gallary" },
+  { name: "Gallery", href: "#gallery" },
   { name: "Contact", href: "#contact" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ user = null }: { user?: any }) {
   const [activeTab, setActiveTab] = useState("Home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        throw new Error("Logout failed");
+      }
+
+      router.replace("/login");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout Error:", error);
+      alert("Unable to logout. Please try again.");
+    }
+  };
+
   return (
     <>
       <motion.nav
         initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        animate={{ y: 0, opacity: 1, x: isHome ? "-50%" : "0%" }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        // Premium Full-Width Container
-        className="fixed top-0 left-0 w-full z-[60] bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm px-6 py-4 lg:px-10 transition-all duration-300"
+        className={`transition-all duration-300 z-[60] ${isHome
+            ? "fixed top-6 left-1/2 w-[95%] max-w-[1100px] bg-white border border-[#E5E7EB] shadow-sm rounded-full px-6 py-2"
+            : "sticky top-0 w-full bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm px-6 py-4 lg:px-10 left-0"
+          }`}
       >
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          
+        <div className={`${isHome ? "w-full" : "max-w-[1600px]"} mx-auto flex items-center justify-between`}>
+
           {/* --- LOGO --- */}
           <Link href="/" onClick={() => setActiveTab("Home")} className="flex items-center gap-3 group z-20 pl-2">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#16a34a] to-green-400 flex items-center justify-center text-white font-extrabold text-base shadow-lg shadow-green-500/30 group-hover:rotate-12 transition-transform">
@@ -45,7 +70,7 @@ export default function Navbar() {
           </Link>
 
           {/* --- DESKTOP NAVIGATION (Sliding Pill) --- */}
-          <div className="hidden lg:flex items-center p-1 bg-gray-50/50 rounded-full border border-gray-100/50 relative">
+          <div className={`hidden lg:flex items-center relative ${isHome ? "gap-2" : "p-1 bg-gray-50/50 rounded-full border border-gray-100/50"}`}>
             {navLinks.map((link) => (
               <div
                 key={link.name}
@@ -56,18 +81,23 @@ export default function Navbar() {
                 <Link
                   href={link.href}
                   onClick={() => setActiveTab(link.name)}
-                  className={`relative z-10 flex items-center gap-1 px-6 py-2.5 rounded-full text-[14px] font-bold transition-colors duration-300 ${
-                    activeTab === link.name ? 'text-green-700' : 'text-gray-500 hover:text-gray-900'
-                  }`}
+                  className={`relative z-10 flex items-center gap-1 px-5 py-2.5 rounded-full text-[14px] font-bold transition-colors duration-300 ${isHome
+                      ? activeTab === link.name
+                        ? "text-white bg-[#16A34A]"
+                        : "text-[#0F172A] hover:text-[#16A34A] bg-transparent"
+                      : activeTab === link.name
+                        ? "text-green-700"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
                 >
                   {link.name}
                   {link.dropdown && (
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-180 ${activeTab === link.name ? 'text-green-700' : 'text-gray-400'}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-180 ${activeTab === link.name ? (isHome ? 'text-white' : 'text-green-700') : (isHome ? 'text-[#0F172A]' : 'text-gray-400')}`} />
                   )}
                 </Link>
 
-                {/* Sliding White Pill Background */}
-                {activeTab === link.name && (
+                {/* Sliding White Pill Background (Only for non-home pages) */}
+                {!isHome && activeTab === link.name && (
                   <motion.div
                     layoutId="activeTab"
                     transition={{ type: "spring", stiffness: 400, damping: 35 }}
@@ -104,12 +134,84 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* --- RIGHT ACTIONS (Desktop) --- */}
+          {/* --- RIGHT ACTIONS --- */}
           <div className="hidden lg:flex items-center gap-5 z-20 pr-1">
-            <Link href="/login" className="flex items-center gap-2 font-bold text-gray-500 hover:text-green-600 transition-colors px-3 text-sm">
-              <User className="w-4 h-4" />
-              Login
-            </Link>
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-3 focus:outline-none"
+                >
+                  <div className="flex flex-col items-end hidden sm:flex">
+                    <span className="text-sm font-bold text-gray-900">{user?.name || "User"}</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{user?.role || "GUEST"}</span>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#16a34a] to-[#3BAF4A] flex items-center justify-center text-white shadow-md">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isProfileOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+                    >
+                      <div className="p-4 border-b border-gray-100 bg-gray-50">
+                        <p className="text-sm font-extrabold text-gray-900 truncate">{user?.name || "User Name"}</p>
+                        <p className="text-xs font-bold text-gray-500 truncate">{user?.email || "user@example.com"}</p>
+                        <span className="inline-block mt-2 px-2 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full uppercase">
+                          {user?.role || "ROLE"}
+                        </span>
+                      </div>
+                      <div className="p-2 flex flex-col gap-1">
+                        <Link
+                          href="/profile"
+                          onClick={() => setIsProfileOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          Profile
+                        </Link>
+                        <Link
+                          href={
+                            user?.role === "SUPER_ADMIN"
+                              ? "/superadmin"
+                              : user?.role
+                                ? `/${user.role.toLowerCase()}`
+                                : "/dashboard"
+                          }
+                          onClick={() => setIsProfileOpen(false)}
+                          className="flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Dashboard
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            handleLogout();
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <Link href="/login" className="flex items-center gap-2 font-bold text-gray-500 hover:text-green-600 transition-colors px-3 text-sm">
+                <User className="w-4 h-4" />
+                Login
+              </Link>
+            )}
 
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -143,7 +245,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="fixed inset-0 bg-black/40 z-[60] backdrop-blur-sm"
             />
-            
+
             {/* Sliding White Panel */}
             <motion.div
               initial={{ x: "100%" }}
@@ -156,7 +258,7 @@ export default function Navbar() {
                 <span className="font-extrabold text-xl text-gray-900 tracking-tight">
                   Nishkam<span className="text-[#f97316]">NGO</span>
                 </span>
-                <button 
+                <button
                   onClick={() => setMobileMenuOpen(false)}
                   className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                 >
@@ -167,9 +269,9 @@ export default function Navbar() {
               <div className="flex-1 py-6 px-6 flex flex-col gap-6">
                 {/* Mobile Search */}
                 <div className="relative">
-                  <input 
-                    type="text" 
-                    placeholder="Search..." 
+                  <input
+                    type="text"
+                    placeholder="Search..."
                     className="w-full bg-gray-50 border border-gray-200 rounded-full py-3.5 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all font-medium text-sm"
                   />
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -179,24 +281,23 @@ export default function Navbar() {
                 <div className="flex flex-col gap-2 mt-2">
                   {navLinks.map((link) => (
                     <div key={link.name} className="flex flex-col">
-                      <Link 
+                      <Link
                         href={link.href}
                         onClick={() => {
                           setActiveTab(link.name);
                           setMobileMenuOpen(false);
                         }}
-                        className={`text-[15px] font-bold transition-colors block py-3 px-4 rounded-[1.2rem] ${
-                          activeTab === link.name ? "bg-green-50 text-[#16a34a]" : "text-gray-700 hover:bg-gray-50 hover:text-[#16a34a]"
-                        }`}
+                        className={`text-[15px] font-bold transition-colors block py-3 px-4 rounded-[1.2rem] ${activeTab === link.name ? "bg-green-50 text-[#16a34a]" : "text-gray-700 hover:bg-gray-50 hover:text-[#16a34a]"
+                          }`}
                       >
                         {link.name}
                       </Link>
-                      
+
                       {/* Mobile Dropdown items */}
                       {link.dropdown && (
                         <div className="ml-4 mt-1 flex flex-col gap-1 border-l-2 border-green-100 pl-4 py-2">
                           {link.dropdown.map((item) => (
-                            <Link 
+                            <Link
                               key={item.name}
                               href={item.href}
                               onClick={() => {

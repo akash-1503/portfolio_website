@@ -75,7 +75,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex-1 bg-[#fafafa] flex items-center justify-center relative overflow-hidden px-4 py-12">
+    <div className="flex-1 bg-[#fafafa] flex flex-col relative overflow-x-hidden overflow-y-auto px-4 py-8 md:py-12">
       
       {/* --- LEFT SIDE DECORATION (Green Craft & Trail) --- */}
       <div className="absolute top-0 left-0 w-64 lg:w-80 h-full pointer-events-none z-0 hidden lg:block">
@@ -133,25 +133,35 @@ export default function RegisterPage() {
 
       {/* --- CENTERED REGISTER DIALOG BOX --- */}
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="w-full max-w-2xl bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 p-8 sm:p-10 relative z-10 mx-auto"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, type: "spring", damping: 25, stiffness: 200 }}
+        className="w-full max-w-2xl my-auto mx-auto bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-gray-100 p-8 sm:p-10 relative z-10"
       >
         {/* Header */}
-        <div className="text-center mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="text-center mb-8"
+        >
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Create Account</h1>
           <p className="text-sm font-medium text-gray-500">
             Join our community and start making an impact.
           </p>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleRegister} className="flex flex-col gap-6">
           
           {/* Scrollable Form Container */}
           <div className="flex flex-col gap-6 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar pb-4">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+            >
               {/* Full Name */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Full Name</label>
@@ -183,9 +193,14 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4, duration: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+            >
               {/* Phone */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Phone</label>
@@ -201,9 +216,14 @@ export default function RegisterPage() {
                 </div>
               </div>
               
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 gap-5">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
+              className="grid grid-cols-1 gap-5"
+            >
               {/* Password */}
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700">Password</label>
@@ -235,14 +255,19 @@ export default function RegisterPage() {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {/* Location (Simplified - UI Only) */}
-            <div className="grid grid-cols-3 gap-3">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
+              className="grid grid-cols-3 gap-3"
+            >
               <input type="text" placeholder="Country" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="State" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
               <input type="text" placeholder="City" className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3 px-4 text-gray-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-gray-100/50" />
-            </div>
+            </motion.div>
           </div>
 
           {/* Error and Success Messages */}
@@ -254,7 +279,12 @@ export default function RegisterPage() {
           )}
 
           {/* Submit Button */}
-          <div className="pt-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.4 }}
+            className="pt-2"
+          >
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -264,17 +294,22 @@ export default function RegisterPage() {
               {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Create Account"}
               <span className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></span>
             </motion.button>
-          </div>
+          </motion.div>
           
           {/* Login Link */}
-          <div className="text-center mt-2">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.4 }}
+            className="text-center mt-2"
+          >
             <p className="text-sm font-medium text-gray-600">
               Already have an account?{" "}
               <Link href="/login" className="font-bold text-[#F97316] hover:text-[#ea580c] transition-colors">
                 Sign In
               </Link>
             </p>
-          </div>
+          </motion.div>
         </form>
       </motion.div>
     </div>

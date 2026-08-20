@@ -8,11 +8,11 @@ const protectionRules: {
   prefix: string;
   allowedRoles: Role[];
 }[] = [
-  { prefix: "/super-admin", allowedRoles: [Role.SUPER_ADMIN] },
+  { prefix: "/superadmin", allowedRoles: [Role.SUPER_ADMIN] },
   { prefix: "/admin", allowedRoles: [Role.ADMIN] },
   { prefix: "/volunteer", allowedRoles: [Role.VOLUNTEER] },
   { prefix: "/user", allowedRoles: [Role.USER] },
-  { prefix: "/api/super-admin", allowedRoles: [Role.SUPER_ADMIN] },
+  { prefix: "/api/superadmin", allowedRoles: [Role.SUPER_ADMIN] },
   { prefix: "/api/admin", allowedRoles: [Role.ADMIN] },
 ];
 
@@ -75,11 +75,11 @@ const userRole = payload.role as Role;
 // Ensure the middleware executes explicitly over restricted layouts
 export const config = {
   matcher: [
-    "/super-admin/:path*",
+    "/superadmin/:path*",
     "/admin/:path*",
     "/volunteer/:path*",
     "/user/:path*",
-    "/api/super-admin/:path*",
+    "/api/superadmin/:path*",
     "/api/admin/:path*",
   ],
 };

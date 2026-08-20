@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { 
-  Heart, Calendar, Target, Award, Bell, 
-  ArrowRight, Activity, MapPin, Clock, 
+  Heart, Calendar, Target, Award, 
+  ArrowRight, MapPin, Clock, 
   CreditCard, Image as ImageIcon, ShieldCheck, 
   AlertCircle, ChevronRight
 } from "lucide-react";
@@ -29,14 +29,6 @@ interface RegisteredEvent {
   status: string;
 }
 
-interface Notification {
-  id: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  type: "DONATION" | "EVENT" | "GENERAL";
-}
-
 interface UserDashboardData {
   user: {
     fullName: string;
@@ -52,7 +44,6 @@ interface UserDashboardData {
   };
   recentDonations: Donation[];
   registeredEvents: RegisteredEvent[];
-  notifications: Notification[];
 }
 
 export default function UserDashboardPage() {
@@ -63,88 +54,71 @@ export default function UserDashboardPage() {
 
   // --- FETCH DATA (Workflow: JWT -> Route -> Service -> JSON) ---
   useEffect(() => {
-  const loadDashboard = async () => {
-    setLoading(true);
+    const loadDashboard = async () => {
+      setLoading(true);
 
-    // Temporary frontend data
-    const mockData: UserDashboardData = {
-      user: {
-        fullName: "User",
-        memberSince: "Jan 2024",
-        totalDonated: 1500,
-        impactScore: 82,
-      },
+      // Temporary frontend data
+      const mockData: UserDashboardData = {
+        user: {
+          fullName: "User",
+          memberSince: "Jan 2024",
+          totalDonated: 1500,
+          impactScore: 82,
+        },
 
-      stats: {
-        activePrograms: 3,
-        upcomingEvents: 5,
-        liveCampaigns: 4,
-        certificatesEarned: 2,
-      },
+        stats: {
+          activePrograms: 3,
+          upcomingEvents: 5,
+          liveCampaigns: 4,
+          certificatesEarned: 2,
+        },
 
-      recentDonations: [
-        {
-          id: "1",
-          amount: 1000,
-          campaignTitle: "Education Support",
-          date: "10 Aug 2026",
-          status: "Completed",
-        },
-        {
-          id: "2",
-          amount: 500,
-          campaignTitle: "Food Distribution",
-          date: "05 Aug 2026",
-          status: "Completed",
-        },
-      ],
+        recentDonations: [
+          {
+            id: "1",
+            amount: 1000,
+            campaignTitle: "Education Support",
+            date: "10 Aug 2026",
+            status: "Completed",
+          },
+          {
+            id: "2",
+            amount: 500,
+            campaignTitle: "Food Distribution",
+            date: "05 Aug 2026",
+            status: "Completed",
+          },
+        ],
 
-      registeredEvents: [
-        {
-          id: "1",
-          title: "Community Education Drive",
-          date: "15 Aug 2026",
-          time: "10:00 AM",
-          location: "Community Hall",
-          status: "Upcoming",
-        },
-        {
-          id: "2",
-          title: "Tree Plantation Campaign",
-          date: "20 Aug 2026",
-          time: "08:30 AM",
-          location: "City Garden",
-          status: "Upcoming",
-        },
-      ],
+        registeredEvents: [
+          {
+            id: "1",
+            title: "Community Education Drive",
+            date: "15 Aug 2026",
+            time: "10:00 AM",
+            location: "Community Hall",
+            status: "Upcoming",
+          },
+          {
+            id: "2",
+            title: "Tree Plantation Campaign",
+            date: "20 Aug 2026",
+            time: "08:30 AM",
+            location: "City Garden",
+            status: "Upcoming",
+          },
+        ],
+      };
 
-      notifications: [
-        {
-          id: "1",
-          message: "Your donation was successfully processed.",
-          time: "2h ago",
-          isRead: false,
-          type: "DONATION",
-        },
-        {
-          id: "2",
-          message: "New event added to your dashboard.",
-          time: "1d ago",
-          isRead: true,
-          type: "EVENT",
-        },
-      ],
+      // Simulate loading
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      setData(mockData);
+      setLoading(false);
     };
 
-    // Simulate loading
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    setData(mockData);
-    setLoading(false);
-  };
-
-  loadDashboard();
-}, []);
+    loadDashboard();
+  }, []);
 
   // --- HELPERS ---
   const getGreeting = () => {
@@ -355,121 +329,47 @@ export default function UserDashboardPage() {
               </div>
             )}
           </motion.div>
-
-          {/* Recent Donations */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-extrabold text-gray-900 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-[#f97316]" /> Recent Donations
-              </h2>
-            </div>
-            
-            {data.recentDonations.length === 0 ? (
-               <div className="py-8 text-center">
-                 <p className="text-gray-500 font-bold text-[13px]">You haven't made any donations yet.</p>
-               </div>
-            ) : (
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse whitespace-nowrap">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Campaign</th>
-                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Date</th>
-                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">Amount</th>
-                      <th className="py-3 px-4 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {data.recentDonations.slice(0, 4).map((donation) => (
-                      <tr key={donation.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3 px-4 text-[13px] font-extrabold text-gray-900">{donation.campaignTitle}</td>
-                        <td className="py-3 px-4 text-[12px] font-bold text-gray-500">{donation.date}</td>
-                        <td className="py-3 px-4 text-[13px] font-extrabold text-[#16a34a]">₹{donation.amount.toLocaleString()}</td>
-                        <td className="py-3 px-4 text-right">
-                          <span className={`px-2.5 py-1 rounded-md text-[9px] font-extrabold uppercase tracking-widest border ${
-                            donation.status === 'SUCCESS' ? 'bg-green-50 text-[#16a34a] border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'
-                          }`}>
-                            {donation.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </motion.div>
-
         </div>
 
         {/* RIGHT COLUMN (Span 1) */}
         <div className="flex flex-col gap-8">
           
-          {/* Notifications Panel */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col h-full max-h-[500px]"
-          >
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-                <Bell className="w-4 h-4 text-blue-500" /> Notifications
-              </h2>
-              {data.notifications.some(n => !n.isRead) && (
-                <span className="w-2 h-2 rounded-full bg-[#f97316] animate-pulse" />
-              )}
-            </div>
-            
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-              {data.notifications.length === 0 ? (
-                <div className="p-6 text-center text-[12px] font-bold text-gray-400">No new notifications.</div>
-              ) : (
-                <div className="flex flex-col divide-y divide-gray-50">
-                  {data.notifications.map((notif) => (
-                    <div key={notif.id} className={`p-4 flex gap-3 transition-colors hover:bg-gray-50 ${!notif.isRead ? 'bg-blue-50/30' : ''}`}>
-                      <div className={`w-8 h-8 rounded-full shrink-0 flex items-center justify-center border ${
-                        notif.type === 'DONATION' ? 'bg-orange-50 text-[#f97316] border-orange-100' :
-                        notif.type === 'EVENT' ? 'bg-green-50 text-[#16a34a] border-green-100' :
-                        'bg-blue-50 text-blue-500 border-blue-100'
-                      }`}>
-                        {notif.type === 'DONATION' ? <Heart className="w-3.5 h-3.5" /> : 
-                         notif.type === 'EVENT' ? <Calendar className="w-3.5 h-3.5" /> : 
-                         <Activity className="w-3.5 h-3.5" />}
-                      </div>
-                      <div className="flex flex-col">
-                        <p className={`text-[12px] leading-relaxed ${!notif.isRead ? 'font-extrabold text-gray-900' : 'font-bold text-gray-600'}`}>
-                          {notif.message}
-                        </p>
-                        <span className="text-[10px] font-extrabold text-gray-400 mt-1 uppercase tracking-widest">{notif.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Quick Links / Gallery Teaser */}
+          {/* UPDATED: NGO Gallery Teaser (Attractive New Design) */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-            className="bg-gradient-to-br from-[#16a34a] to-[#4ade80] rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgba(22,163,74,0.2)] text-white relative overflow-hidden group"
+            className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-[2.5rem] p-8 shadow-[0_12px_40px_rgba(79,70,229,0.25)] text-white relative overflow-hidden group hover:-translate-y-1 transition-all duration-300"
           >
-            {/* Background SVG craft */}
-            <svg className="absolute top-0 right-0 w-48 h-48 opacity-20 transform translate-x-10 -translate-y-10 group-hover:rotate-12 transition-transform duration-700" viewBox="0 0 100 100" fill="none">
-              <path d="M 10 50 Q 50 10, 90 50 T 90 90 Q 50 90, 10 90 Z" stroke="white" strokeWidth="4" strokeDasharray="4 4" />
+            {/* Ambient Background Glows */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl transform translate-x-1/3 -translate-y-1/3"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500 opacity-20 rounded-full blur-2xl transform -translate-x-1/2 translate-y-1/2"></div>
+
+            {/* Custom SVG Craft (Polaroid/Photo motif) */}
+            <svg className="absolute top-2 -right-4 w-40 h-40 opacity-20 group-hover:rotate-6 group-hover:scale-110 transition-transform duration-500 pointer-events-none" viewBox="0 0 100 100" fill="none">
+              <rect x="15" y="20" width="45" height="55" rx="4" stroke="white" strokeWidth="2.5" strokeDasharray="4 4" transform="rotate(-15 35 45)" />
+              <rect x="35" y="15" width="45" height="55" rx="4" stroke="white" strokeWidth="2.5" transform="rotate(10 55 40)" />
+              <circle cx="58" cy="38" r="8" stroke="white" strokeWidth="2" />
+              <path d="M 35 60 Q 45 45, 55 55 T 80 50" stroke="white" strokeWidth="2" strokeLinecap="round" transform="rotate(10 55 40)"/>
             </svg>
             
-            <div className="relative z-10">
-              <ImageIcon className="w-8 h-8 mb-4 text-white/80" />
-              <h3 className="text-xl font-extrabold leading-tight mb-2">NGO Gallery</h3>
-              <p className="text-[13px] font-bold text-green-50 mb-6 opacity-90">
-                See the impact of our recent programs and your contributions in action.
-              </p>
-              <Link href="/user/gallery">
-                <button className="px-5 py-2.5 bg-white text-[#16a34a] rounded-full text-[12px] font-extrabold shadow-sm hover:bg-green-50 transition-colors flex items-center gap-2">
-                  View Gallery <ArrowRight className="w-3.5 h-3.5" />
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                {/* Glassmorphic Icon Wrapper */}
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                  <ImageIcon className="w-6 h-6 text-white" />
+                </div>
+                
+                <h3 className="text-2xl font-extrabold leading-tight mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-indigo-100">
+                  Impact Gallery
+                </h3>
+                
+                <p className="text-[13px] font-bold text-indigo-100 mb-8 leading-relaxed opacity-90 max-w-[95%]">
+                  Witness the smiles and milestones. See how your contributions translate into real-world magic.
+                </p>
+              </div>
+              
+              <Link href="/user/gallery" className="mt-auto inline-block">
+                <button className="w-full sm:w-auto px-6 py-3 bg-white/10 hover:bg-white text-white hover:text-indigo-700 backdrop-blur-md border border-white/30 rounded-full text-[12px] font-extrabold shadow-lg transition-all flex items-center justify-center gap-2 group-hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                  Explore Gallery <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
             </div>

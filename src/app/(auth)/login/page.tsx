@@ -39,13 +39,13 @@ export default function LoginPage() {
       }
 
       // Stop loading before redirecting
-      setIsLoading(false);
+      setIsLoading(false);      
 
       // Role-based Redirect Logic
       const role = data.user?.role;
       
       if (role === "SUPER_ADMIN") {
-        router.push("/super-admin");
+        router.push("/superadmin");
       } else if (role === "ADMIN") {
         router.push("/admin");
       } else if (role === "VOLUNTEER") {
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   // The component's JSX return begins here
   return (
-    <div className="flex-1 bg-[#fafafa] flex items-center justify-center relative overflow-hidden px-4 py-12 min-h-screen">
+    <div className="flex-1 bg-[#fafafa] flex flex-col relative overflow-x-hidden overflow-y-auto px-4 py-8 md:py-12">
       
       {/* --- THEME DESIGN: Glowing Orbs & Diagonal Uplift --- */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 flex items-center justify-center">
@@ -123,23 +123,33 @@ export default function LoginPage() {
 
       {/* --- CENTERED LOGIN DIALOG BOX --- */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        initial={{ opacity: 0, scale: 0.95, y: 30 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
-        className="w-full max-w-[480px] bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_40px_rgb(0,0,0,0.06)] border border-white/60 p-8 sm:p-10 relative z-10"
+        transition={{ duration: 0.6, type: "spring", damping: 25, stiffness: 200 }}
+        className="w-full max-w-[480px] my-auto mx-auto bg-white/80 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_40px_rgb(0,0,0,0.06)] border border-white/60 p-8 sm:p-10 relative z-10"
       >
         {/* Header */}
-        <div className="text-center mb-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="text-center mb-10"
+        >
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-sm font-medium text-gray-500">
             Sign in to continue managing your impact.
           </p>
-        </div>
+        </motion.div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-5">
           
           {/* Email Field */}
-          <div className="space-y-2">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="space-y-2"
+          >
             <label className="text-sm font-bold text-gray-700">Email Address</label>
             <div className="relative group">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-[#16A34A] transition-colors" />
@@ -152,10 +162,15 @@ export default function LoginPage() {
                 className="w-full bg-white/60 border border-gray-200 rounded-[1.2rem] py-3.5 pl-12 pr-4 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-white"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Password Field */}
-          <div className="space-y-2">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="space-y-2"
+          >
             <div className="flex items-center justify-between">
               <label className="text-sm font-bold text-gray-700">Password</label>
               <Link href="/forgot-password" className="text-[13px] font-bold text-[#16A34A] hover:text-[#15803d] transition-colors">
@@ -173,10 +188,15 @@ export default function LoginPage() {
                 className="w-full bg-white/60 border border-gray-200 rounded-[1.2rem] py-3.5 pl-12 pr-4 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-[#16A34A]/20 focus:border-[#16A34A] transition-all hover:bg-white"
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Remember Me */}
-          <div className="flex items-center mt-1">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="flex items-center mt-1"
+          >
             <label className="flex items-center gap-2 cursor-pointer group">
               <div className="relative flex items-center justify-center">
                 <input type="checkbox" className="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-md checked:bg-[#16A34A] checked:border-[#16A34A] transition-colors cursor-pointer" />
@@ -186,17 +206,24 @@ export default function LoginPage() {
               </div>
               <span className="text-sm font-semibold text-gray-600 group-hover:text-gray-900 transition-colors">Remember me for 30 days</span>
             </label>
-          </div>
+          </motion.div>
           
           {/* Error Message Display */}
           {error && (
-            <p className="text-red-500 text-sm font-medium mt-2">
+            <motion.p 
+              initial={{ opacity: 0, y: -10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="text-red-500 text-sm font-medium mt-2"
+            >
               {error}
-            </p>
+            </motion.p>
           )}
           
           {/* Login Button */}
           <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             disabled={isLoading}
@@ -212,14 +239,24 @@ export default function LoginPage() {
         </form>
 
         {/* Divider */}
-        <div className="flex items-center gap-4 my-8">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.4 }}
+          className="flex items-center gap-4 my-8"
+        >
           <div className="h-px bg-gray-200 flex-1"></div>
           <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Or continue with</span>
           <div className="h-px bg-gray-200 flex-1"></div>
-        </div>
+        </motion.div>
 
         {/* SSO Buttons */}
-        <div className="grid grid-cols-2 gap-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.4 }}
+          className="grid grid-cols-2 gap-4"
+        >
           <motion.button 
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
@@ -246,17 +283,22 @@ export default function LoginPage() {
             </svg>
             Microsoft
           </motion.button>
-        </div>
+        </motion.div>
 
         {/* Register Link */}
-        <div className="mt-8 text-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.4 }}
+          className="mt-8 text-center"
+        >
           <p className="text-[13.5px] font-medium text-gray-600">
             Don't have an account?{" "}
             <Link href="/register" className="font-bold text-[#F97316] hover:text-[#ea580c] transition-colors relative after:content-[''] after:absolute after:-bottom-0.5 after:left-0 after:w-0 after:h-[2px] after:bg-[#F97316] hover:after:w-full after:transition-all after:duration-300">
               Create an account
             </Link>
           </p>
-        </div>
+        </motion.div>
 
       </motion.div>
     </div>
