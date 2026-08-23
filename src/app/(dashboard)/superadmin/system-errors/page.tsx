@@ -1,6 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 
 /* =========================================================
@@ -13,7 +17,10 @@ type ErrorSeverity =
   | "ERROR"
   | "CRITICAL";
 
-type ErrorStatus = "ALL" | "OPEN" | "RESOLVED";
+type ErrorStatus =
+  | "ALL"
+  | "OPEN"
+  | "RESOLVED";
 
 interface SystemError {
   id: string;
@@ -48,7 +55,6 @@ interface SystemError {
 
   createdAt: string;
 
-
   ngo?: {
     id: string;
     name: string;
@@ -65,6 +71,7 @@ interface SystemError {
     id: string;
     name: string;
     email: string;
+    role?: string;
   } | null;
 }
 
@@ -118,7 +125,8 @@ export default function SystemErrorsPage() {
      STATE
   ======================================================= */
 
-  const [errors, setErrors] = useState<SystemError[]>([]);
+  const [errors, setErrors] =
+    useState<SystemError[]>([]);
 
   const [pagination, setPagination] =
     useState<Pagination | null>(null);
@@ -144,7 +152,9 @@ export default function SystemErrorsPage() {
     useState<ErrorStatus>("ALL");
 
   const [severity, setSeverity] =
-    useState<ErrorSeverity | "ALL">("ALL");
+    useState<
+      ErrorSeverity | "ALL"
+    >("ALL");
 
   const [page, setPage] =
     useState(1);
@@ -208,24 +218,25 @@ export default function SystemErrorsPage() {
            API REQUEST
         --------------------------------------------------- */
 
-        const response = await fetch(
-          `/api/superadmin/system-errors?${params.toString()}`,
-          {
-            method: "GET",
+        const response =
+          await fetch(
+            `/api/superadmin/system-errors?${params.toString()}`,
+            {
+              method: "GET",
 
-            credentials: "include",
+              credentials: "include",
 
-            cache: "no-store",
+              cache: "no-store",
 
-            headers: {
-              Accept:
-                "application/json",
-            },
-          }
-        );
+              headers: {
+                Accept:
+                  "application/json",
+              },
+            }
+          );
 
         /* ---------------------------------------------------
-           CHECK CONTENT TYPE
+           CONTENT TYPE
         --------------------------------------------------- */
 
         const contentType =
@@ -242,17 +253,17 @@ export default function SystemErrorsPage() {
             await response.text();
 
           console.error(
-            "NON JSON SYSTEM ERROR RESPONSE:",
+            "NON-JSON SYSTEM ERRORS RESPONSE:",
             text
           );
 
           throw new Error(
-            `API returned ${response.status} instead of JSON.`
+            "Invalid server response."
           );
         }
 
         /* ---------------------------------------------------
-           PARSE JSON
+           PARSE RESPONSE
         --------------------------------------------------- */
 
         const result =
@@ -278,41 +289,37 @@ export default function SystemErrorsPage() {
         }
 
         /* ---------------------------------------------------
-           SET ERRORS
+           DATA
         --------------------------------------------------- */
+
+        const data =
+          result.data;
 
         setErrors(
-          result.data?.errors ?? []
+          data?.errors ?? []
         );
-
-        /* ---------------------------------------------------
-           SET PAGINATION
-        --------------------------------------------------- */
 
         setPagination(
-          result.data?.pagination ??
-            null
+          data?.pagination ?? null
         );
-
-        /* ---------------------------------------------------
-           SET STATISTICS
-        --------------------------------------------------- */
 
         setStatistics(
-          result.data?.statistics ??
+          data?.statistics ??
             DEFAULT_STATISTICS
         );
-
       } catch (error) {
         console.error(
           "SYSTEM ERRORS PAGE ERROR:",
           error
         );
 
+        /*
+         * Do not expose raw server/database
+         * errors to the end user.
+         */
+
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Failed to load system errors."
+          "Unable to load system errors. Please try again."
         );
       } finally {
         setLoading(false);
@@ -418,11 +425,8 @@ export default function SystemErrorsPage() {
 
   function clearFilters() {
     setSearch("");
-
     setStatus("ALL");
-
     setSeverity("ALL");
-
     setPage(1);
   }
 
@@ -432,7 +436,10 @@ export default function SystemErrorsPage() {
 
   function goToPreviousPage() {
     setPage((current) =>
-      Math.max(current - 1, 1)
+      Math.max(
+        current - 1,
+        1
+      )
     );
   }
 
@@ -465,20 +472,7 @@ export default function SystemErrorsPage() {
       <div className="min-h-full p-6">
         <div className="mx-auto max-w-7xl">
 
-          <div className="mb-8">
-            <p className="text-sm font-medium text-green-600">
-              Super Admin
-            </p>
-
-            <h1 className="mt-1 text-3xl font-bold text-slate-900">
-              System Errors
-            </h1>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Monitor and manage application
-              errors across the NGO system.
-            </p>
-          </div>
+          <PageHeader />
 
           <div className="flex min-h-[300px] items-center justify-center rounded-2xl border bg-white">
             <div className="text-center">
@@ -522,21 +516,26 @@ export default function SystemErrorsPage() {
             <div className="mt-5 flex gap-3">
 
               <button
+                type="button"
                 onClick={() =>
                   loadErrors(true)
                 }
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                disabled={refreshing}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Try Again
+                {refreshing
+                  ? "Trying..."
+                  : "Try Again"}
               </button>
 
               <button
+                type="button"
                 onClick={() =>
                   router.push(
                     "/superadmin"
                   )
                 }
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Back
               </button>
@@ -565,29 +564,15 @@ export default function SystemErrorsPage() {
 
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
 
-          <div>
-
-            <p className="text-sm font-medium text-green-600">
-              Super Admin
-            </p>
-
-            <h1 className="mt-1 text-3xl font-bold text-slate-900">
-              System Errors
-            </h1>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Monitor, investigate and resolve
-              application errors.
-            </p>
-
-          </div>
+          <PageHeader />
 
           <button
+            type="button"
             onClick={() =>
               loadErrors(true)
             }
             disabled={refreshing}
-            className="inline-flex items-center justify-center rounded-xl border bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {refreshing
               ? "Refreshing..."
@@ -638,7 +623,7 @@ export default function SystemErrorsPage() {
             FILTERS
         ================================================= */}
 
-        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
           <div className="grid gap-4 md:grid-cols-3">
 
@@ -646,11 +631,15 @@ export default function SystemErrorsPage() {
 
             <div>
 
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label
+                htmlFor="system-error-search"
+                className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500"
+              >
                 Search
               </label>
 
               <input
+                id="system-error-search"
                 type="text"
                 value={search}
                 onChange={(e) =>
@@ -668,11 +657,15 @@ export default function SystemErrorsPage() {
 
             <div>
 
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label
+                htmlFor="system-error-status"
+                className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500"
+              >
                 Status
               </label>
 
               <select
+                id="system-error-status"
                 value={status}
                 onChange={(e) =>
                   handleStatusChange(
@@ -702,11 +695,15 @@ export default function SystemErrorsPage() {
 
             <div>
 
-              <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500">
+              <label
+                htmlFor="system-error-severity"
+                className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-500"
+              >
                 Severity
               </label>
 
               <select
+                id="system-error-severity"
                 value={severity}
                 onChange={(e) =>
                   handleSeverityChange(
@@ -745,6 +742,7 @@ export default function SystemErrorsPage() {
           <div className="mt-4 flex justify-end">
 
             <button
+              type="button"
               onClick={
                 clearFilters
               }
@@ -768,12 +766,12 @@ export default function SystemErrorsPage() {
         )}
 
         {/* =================================================
-            TABLE
+            ERROR TABLE
         ================================================= */}
 
-        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-          <div className="border-b px-5 py-4">
+          <div className="border-b border-slate-200 px-5 py-4">
 
             <h2 className="font-semibold text-slate-900">
               Error Logs
@@ -796,7 +794,7 @@ export default function SystemErrorsPage() {
 
               <div className="text-center">
 
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-xl text-green-600">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-xl font-semibold text-green-600">
                   ✓
                 </div>
 
@@ -825,7 +823,7 @@ export default function SystemErrorsPage() {
 
                 <thead className="bg-slate-50">
 
-                  <tr className="border-b text-left">
+                  <tr className="border-b border-slate-200 text-left">
 
                     <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Error
@@ -867,25 +865,30 @@ export default function SystemErrorsPage() {
                         key={
                           error.id
                         }
-                        className="border-b last:border-0 hover:bg-slate-50"
+                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50"
                       >
 
                         {/* ERROR */}
 
                         <td className="max-w-[300px] px-5 py-4">
 
-                          <div className="truncate font-medium text-slate-900">
+                          <div
+                            title={
+                              error.message
+                            }
+                            className="truncate font-medium text-slate-900"
+                          >
                             {error.message}
                           </div>
 
                           {error.errorType && (
-                            <div className="mt-1 text-xs text-slate-400">
+                            <div className="mt-1 truncate text-xs text-slate-400">
                               {error.errorType}
                             </div>
                           )}
 
                           {error.requestId && (
-                            <div className="mt-1 text-xs text-slate-400">
+                            <div className="mt-1 truncate text-xs text-slate-400">
                               Request:{" "}
                               {error.requestId}
                             </div>
@@ -907,7 +910,7 @@ export default function SystemErrorsPage() {
 
                         {/* ENDPOINT */}
 
-                        <td className="px-5 py-4">
+                        <td className="max-w-[280px] px-5 py-4">
 
                           <div className="text-xs">
 
@@ -956,9 +959,16 @@ export default function SystemErrorsPage() {
 
                         {/* NGO */}
 
-                        <td className="px-5 py-4">
+                        <td className="max-w-[180px] px-5 py-4">
 
-                          <span className="text-sm text-slate-600">
+                          <span
+                            title={
+                              error.ngo
+                                ?.name ||
+                              "System"
+                            }
+                            className="block truncate text-sm text-slate-600"
+                          >
                             {error.ngo
                               ?.name ||
                               "System"}
@@ -983,6 +993,7 @@ export default function SystemErrorsPage() {
                         <td className="px-5 py-4">
 
                           <button
+                            type="button"
                             onClick={() =>
                               viewError(
                                 error.id
@@ -1012,7 +1023,7 @@ export default function SystemErrorsPage() {
 
           {pagination &&
             pagination.totalPages > 0 && (
-              <div className="flex flex-col justify-between gap-3 border-t px-5 py-4 sm:flex-row sm:items-center">
+              <div className="flex flex-col justify-between gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center">
 
                 <p className="text-sm text-slate-500">
 
@@ -1037,6 +1048,7 @@ export default function SystemErrorsPage() {
                 <div className="flex gap-2">
 
                   <button
+                    type="button"
                     disabled={
                       pagination.page <=
                       1
@@ -1044,12 +1056,13 @@ export default function SystemErrorsPage() {
                     onClick={
                       goToPreviousPage
                     }
-                    className="rounded-lg border px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Previous
                   </button>
 
                   <button
+                    type="button"
                     disabled={
                       pagination.page >=
                       pagination.totalPages
@@ -1057,7 +1070,7 @@ export default function SystemErrorsPage() {
                     onClick={
                       goToNextPage
                     }
-                    className="rounded-lg border px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Next
                   </button>
@@ -1076,6 +1089,29 @@ export default function SystemErrorsPage() {
 }
 
 /* =========================================================
+   PAGE HEADER
+========================================================= */
+
+function PageHeader() {
+  return (
+    <div>
+      <p className="text-sm font-medium text-green-600">
+        Super Admin
+      </p>
+
+      <h1 className="mt-1 text-3xl font-bold text-slate-900">
+        System Errors
+      </h1>
+
+      <p className="mt-2 text-sm text-slate-500">
+        Monitor, investigate and resolve
+        application errors.
+      </p>
+    </div>
+  );
+}
+
+/* =========================================================
    STAT CARD
 ========================================================= */
 
@@ -1089,7 +1125,7 @@ function StatCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
       <p className="text-sm font-medium text-slate-500">
         {title}
@@ -1149,7 +1185,9 @@ function SeverityBadge({
 function StatusBadge({
   status,
 }: {
-  status: "OPEN" | "RESOLVED";
+  status:
+    | "OPEN"
+    | "RESOLVED";
 }) {
   const isResolved =
     status === "RESOLVED";
@@ -1175,7 +1213,8 @@ function formatDate(
   value: string
 ): string {
   try {
-    const date = new Date(value);
+    const date =
+      new Date(value);
 
     if (
       Number.isNaN(
@@ -1185,8 +1224,14 @@ function formatDate(
       return value;
     }
 
-    return date.toLocaleString();
-  } catch {
+    return date.toLocaleString(
+      undefined,
+      {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }
+    );
+  } catch { 
     return value;
   }
 }

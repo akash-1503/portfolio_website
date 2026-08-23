@@ -1,102 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
-import { verifyToken } from "../../../../lib/jwt";
-import { ErrorSeverity, Role } from "@prisma/client";
 import { logSystemError } from "../../../../lib/system-error";
-
-/* =========================================================
-   SUPER ADMIN AUTHENTICATION
-========================================================= */
-
-async function authenticateSuperAdmin(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-
-  if (!token) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      ),
-    };
-  }
-
-  let payload: any;
-
-  try {
-    payload = verifyToken(token);
-  } catch (error) {
-    console.error("SUPER ADMIN JWT ERROR:", error);
-
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Invalid or expired token.",
-        },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (payload.role !== Role.SUPER_ADMIN) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Super Admin access required.",
-        },
-        { status: 403 }
-      ),
-    };
-  }
-
-  const superAdmin = await prisma.user.findFirst({
-    where: {
-      id: payload.id,
-      role: Role.SUPER_ADMIN,
-      isDeleted: false,
-    },
-
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  });
-
-  if (!superAdmin) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Super Admin account not found.",
-        },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return {
-    payload,
-    superAdmin,
-  };
-}
+import { authenticateSuperAdmin } from "../../../../lib/auth/super-admin";
+import { ErrorSeverity, Prisma } from "@prisma/client";
 
 /* =========================================================
    GET SYSTEM ERRORS
+
    GET /api/superadmin/system-errors
+
+   Query Parameters:
+
+   ?page=1
+   ?limit=20
+   ?status=OPEN
+   ?status=RESOLVED
+   ?severity=INFO
+   ?severity=WARNING
+   ?severity=ERROR
+   ?severity=CRITICAL
+   ?search=something
 ========================================================= */
 
 export async function GET(req: NextRequest) {
   try {
+    /* =====================================================
+       SUPER ADMIN AUTHENTICATION
+    ===================================================== */
+
     const auth = await authenticateSuperAdmin(req);
 
     if ("error" in auth) {
       return auth.error;
     }
+
+    /* =====================================================
+       QUERY PARAMETERS
+    ===================================================== */
 
     const { searchParams } = new URL(req.url);
 
@@ -109,11 +49,11 @@ export async function GET(req: NextRequest) {
     ===================================================== */
 
     const rawPage = Number(
-      searchParams.get("page") || "1"
+      searchParams.get("page") ?? "1"
     );
 
     const rawLimit = Number(
-      searchParams.get("limit") || "20"
+      searchParams.get("limit") ?? "20"
     );
 
     const page =
@@ -129,10 +69,10 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     /* =====================================================
-       WHERE
+       WHERE CLAUSE
     ===================================================== */
 
-    const where: any = {};
+    const where: Prisma.SystemErrorWhereInput = {};
 
     /* =====================================================
        STATUS FILTER
@@ -156,11 +96,12 @@ export async function GET(req: NextRequest) {
       severity === "ERROR" ||
       severity === "CRITICAL"
     ) {
-      where.severity = severity as ErrorSeverity;
+      where.severity =
+        severity as ErrorSeverity;
     }
 
     /* =====================================================
-       SEARCH
+       SEARCH FILTER
     ===================================================== */
 
     if (search?.trim()) {
@@ -173,21 +114,18 @@ export async function GET(req: NextRequest) {
             mode: "insensitive",
           },
         },
-
         {
           endpoint: {
             contains: searchValue,
             mode: "insensitive",
           },
         },
-
         {
           errorType: {
             contains: searchValue,
             mode: "insensitive",
           },
         },
-
         {
           requestId: {
             contains: searchValue,
@@ -210,7 +148,7 @@ export async function GET(req: NextRequest) {
       resolvedCount,
     ] = await Promise.all([
       /* ===================================================
-         ERRORS
+         ERROR LIST
       =================================================== */
 
       prisma.systemError.findMany({
@@ -248,12 +186,20 @@ export async function GET(req: NextRequest) {
 
           createdAt: true,
 
+          /* -----------------------------------------------
+             NGO
+          ----------------------------------------------- */
+
           ngo: {
             select: {
               id: true,
               name: true,
             },
           },
+
+          /* -----------------------------------------------
+             USER
+          ----------------------------------------------- */
 
           user: {
             select: {
@@ -263,6 +209,10 @@ export async function GET(req: NextRequest) {
               role: true,
             },
           },
+
+          /* -----------------------------------------------
+             RESOLVED BY
+          ----------------------------------------------- */
 
           resolvedBy: {
             select: {
@@ -276,7 +226,7 @@ export async function GET(req: NextRequest) {
       }),
 
       /* ===================================================
-         TOTAL
+         TOTAL FILTERED ERRORS
       =================================================== */
 
       prisma.systemError.count({
@@ -284,7 +234,7 @@ export async function GET(req: NextRequest) {
       }),
 
       /* ===================================================
-         OPEN
+         TOTAL OPEN ERRORS
       =================================================== */
 
       prisma.systemError.count({
@@ -294,7 +244,7 @@ export async function GET(req: NextRequest) {
       }),
 
       /* ===================================================
-         CRITICAL
+         TOTAL OPEN CRITICAL ERRORS
       =================================================== */
 
       prisma.systemError.count({
@@ -305,7 +255,7 @@ export async function GET(req: NextRequest) {
       }),
 
       /* ===================================================
-         ERROR
+         TOTAL OPEN ERROR-SEVERITY ERRORS
       =================================================== */
 
       prisma.systemError.count({
@@ -316,7 +266,7 @@ export async function GET(req: NextRequest) {
       }),
 
       /* ===================================================
-         RESOLVED
+         TOTAL RESOLVED ERRORS
       =================================================== */
 
       prisma.systemError.count({
@@ -330,31 +280,40 @@ export async function GET(req: NextRequest) {
        RESPONSE
     ===================================================== */
 
-    return NextResponse.json({
-      success: true,
+    return NextResponse.json(
+      {
+        success: true,
 
-      data: {
-        errors,
+        data: {
+          errors,
 
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages:
-            total === 0
-              ? 0
-              : Math.ceil(total / limit),
-        },
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages:
+              total === 0
+                ? 0
+                : Math.ceil(total / limit),
+          },
 
-        statistics: {
-          open: openCount,
-          critical: criticalCount,
-          error: errorCount,
-          resolved: resolvedCount,
+          statistics: {
+            open: openCount,
+            critical: criticalCount,
+            error: errorCount,
+            resolved: resolvedCount,
+          },
         },
       },
-    });
+      {
+        status: 200,
+      }
+    );
   } catch (error) {
+    /* =====================================================
+       DATABASE / SERVER ERROR
+    ===================================================== */
+
     console.error(
       "========== GET SYSTEM ERRORS ERROR =========="
     );
@@ -370,19 +329,32 @@ export async function GET(req: NextRequest) {
             ? error.message
             : "Failed to load system errors.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
 /* =========================================================
    POST SYSTEM ERROR
+
    POST /api/superadmin/system-errors
+
+   Used for MANUAL system-error creation.
+
+   Automatic application errors should normally use
+   logSystemError() directly instead of calling this route.
 ========================================================= */
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await authenticateSuperAdmin(req);
+    /* =====================================================
+       SUPER ADMIN AUTHENTICATION
+    ===================================================== */
+
+    const auth =
+      await authenticateSuperAdmin(req);
 
     if ("error" in auth) {
       return auth.error;
@@ -392,7 +364,7 @@ export async function POST(req: NextRequest) {
        REQUEST BODY
     ===================================================== */
 
-    let body: any;
+    let body: unknown;
 
     try {
       body = await req.json();
@@ -400,74 +372,238 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: "Invalid JSON request body.",
+          message:
+            "Invalid JSON request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    const {
-      message,
-      errorType,
-      endpoint,
-      method,
-      statusCode,
-      ngoId,
-      userId,
-      severity,
-      requestId,
-      metadata,
-    } = body;
-
     /* =====================================================
-       VALIDATION
+       VALIDATE OBJECT
     ===================================================== */
 
     if (
-      !message ||
-      typeof message !== "string"
+      typeof body !== "object" ||
+      body === null ||
+      Array.isArray(body)
     ) {
       return NextResponse.json(
         {
           success: false,
-          message: "Error message is required.",
+          message:
+            "Request body must be a JSON object.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const data =
+      body as Record<string, unknown>;
+
+    /* =====================================================
+       MESSAGE
+    ===================================================== */
+
+    const message =
+      typeof data.message === "string"
+        ? data.message.trim()
+        : "";
+
+    if (!message) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Error message is required.",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     /* =====================================================
-       VALIDATE SEVERITY
+       ERROR TYPE
     ===================================================== */
 
-    const validSeverity =
-      severity === "INFO" ||
-      severity === "WARNING" ||
-      severity === "ERROR" ||
-      severity === "CRITICAL"
-        ? (severity as ErrorSeverity)
-        : ErrorSeverity.ERROR;
+    const errorType =
+      typeof data.errorType === "string" &&
+      data.errorType.trim()
+        ? data.errorType.trim()
+        : undefined;
+
+    /* =====================================================
+       ENDPOINT
+    ===================================================== */
+
+    const endpoint =
+      typeof data.endpoint === "string" &&
+      data.endpoint.trim()
+        ? data.endpoint.trim()
+        : undefined;
+
+    /* =====================================================
+       METHOD
+    ===================================================== */
+
+    const method =
+      typeof data.method === "string" &&
+      data.method.trim()
+        ? data.method
+            .trim()
+            .toUpperCase()
+        : undefined;
+
+    /* =====================================================
+       STATUS CODE
+    ===================================================== */
+
+    let statusCode:
+      | number
+      | undefined;
+
+    if (data.statusCode !== undefined) {
+      if (
+        typeof data.statusCode !== "number" ||
+        !Number.isInteger(
+          data.statusCode
+        ) ||
+        data.statusCode < 100 ||
+        data.statusCode > 599
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            message:
+              "Invalid HTTP status code.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      statusCode = data.statusCode;
+    }
+
+    /* =====================================================
+       NGO ID
+    ===================================================== */
+
+    const ngoId =
+      typeof data.ngoId === "string" &&
+      data.ngoId.trim()
+        ? data.ngoId.trim()
+        : null;
+
+    /* =====================================================
+       USER ID
+    ===================================================== */
+
+    const userId =
+      typeof data.userId === "string" &&
+      data.userId.trim()
+        ? data.userId.trim()
+        : null;
+
+    /* =====================================================
+       REQUEST ID
+    ===================================================== */
+
+    const requestId =
+      typeof data.requestId === "string" &&
+      data.requestId.trim()
+        ? data.requestId.trim()
+        : undefined;
+
+    /* =====================================================
+       SEVERITY
+    ===================================================== */
+
+    let validSeverity:
+      ErrorSeverity =
+      ErrorSeverity.ERROR;
+
+    if (
+      data.severity === "INFO" ||
+      data.severity === "WARNING" ||
+      data.severity === "ERROR" ||
+      data.severity === "CRITICAL"
+    ) {
+      validSeverity =
+        data.severity as ErrorSeverity;
+    }
+
+    /* =====================================================
+       METADATA
+    ===================================================== */
+
+    let metadata:
+      | Prisma.InputJsonValue
+      | undefined;
+
+    if (
+      data.metadata !== undefined
+    ) {
+      const metadataValue =
+        data.metadata;
+
+      if (
+        metadataValue === null
+      ) {
+        metadata = undefined;
+      } else if (
+        typeof metadataValue ===
+          "object" ||
+        typeof metadataValue ===
+          "string" ||
+        typeof metadataValue ===
+          "number" ||
+        typeof metadataValue ===
+          "boolean"
+      ) {
+        metadata =
+          metadataValue as Prisma.InputJsonValue;
+      }
+    }
 
     /* =====================================================
        CREATE SYSTEM ERROR
     ===================================================== */
 
-    const systemError = await logSystemError({
-  error: new Error(message),
-  message,
-  errorType: errorType || null,
-  endpoint: endpoint || null,
-  method: method || null,
-  statusCode: statusCode ?? null,
-  ngoId: ngoId || null,
-  userId: userId || null,
-  severity: validSeverity as ErrorSeverity,
-  requestId: requestId || null,
-  metadata: metadata || null,
-});
+    const systemError =
+      await logSystemError({
+        error: new Error(message),
+
+        message,
+
+        errorType,
+
+        endpoint,
+
+        method,
+
+        statusCode,
+
+        ngoId,
+
+        userId,
+
+        severity:
+          validSeverity,
+
+        requestId,
+
+        metadata,
+      });
 
     /* =====================================================
-       CREATE FAILED
+       LOGGING FAILED
     ===================================================== */
 
     if (!systemError) {
@@ -477,12 +613,14 @@ export async function POST(req: NextRequest) {
           message:
             "Failed to create system error.",
         },
-        { status: 500 }
+        {
+          status: 500,
+        }
       );
     }
 
     /* =====================================================
-       RESPONSE
+       SUCCESS
     ===================================================== */
 
     return NextResponse.json(
@@ -490,19 +628,26 @@ export async function POST(req: NextRequest) {
         success: true,
 
         message:
-          "System error recorded.",
+          "System error recorded successfully.",
 
         data: {
           error: systemError,
         },
       },
-      { status: 201 }
+      {
+        status: 201,
+      }
     );
   } catch (error) {
+    /* =====================================================
+       SERVER ERROR
+    ===================================================== */
+
     console.error(
-      "POST SYSTEM ERROR ERROR:",
-      error
+      "========== POST SYSTEM ERROR ERROR =========="
     );
+
+    console.error(error);
 
     return NextResponse.json(
       {
@@ -513,7 +658,9 @@ export async function POST(req: NextRequest) {
             ? error.message
             : "Failed to record system error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

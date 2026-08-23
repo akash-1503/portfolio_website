@@ -1,92 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
-import { verifyToken } from "../../../../../lib/jwt";
-import { Role, ErrorSeverity } from "@prisma/client";
-
-/* =========================================================
-   AUTHENTICATE SUPER ADMIN
-========================================================= */
-
-async function authenticateSuperAdmin(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-
-  if (!token) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Unauthorized",
-        },
-        { status: 401 }
-      ),
-    };
-  }
-
-  let payload: any;
-
-  try {
-    payload = verifyToken(token);
-  } catch (error) {
-    console.error("SUPER ADMIN JWT ERROR:", error);
-
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Invalid or expired token.",
-        },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (payload.role !== Role.SUPER_ADMIN) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Super Admin access required.",
-        },
-        { status: 403 }
-      ),
-    };
-  }
-
-  const superAdmin = await prisma.user.findFirst({
-    where: {
-      id: payload.id,
-      role: Role.SUPER_ADMIN,
-      isDeleted: false,
-    },
-
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-    },
-  });
-
-  if (!superAdmin) {
-    return {
-      error: NextResponse.json(
-        {
-          success: false,
-          message: "Super Admin account not found.",
-        },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return {
-    payload,
-    superAdmin,
-  };
-}
+import { ErrorSeverity } from "@prisma/client";
+import { authenticateSuperAdmin } from "../../../../../lib/auth/super-admin";
 
 /* =========================================================
    GET SINGLE SYSTEM ERROR
+
+   GET /api/superadmin/system-errors/[id]
 ========================================================= */
 
 export async function GET(
@@ -96,11 +16,19 @@ export async function GET(
   }
 ) {
   try {
+    /* =====================================================
+       SUPER ADMIN AUTHENTICATION
+    ===================================================== */
+
     const auth = await authenticateSuperAdmin(req);
 
     if ("error" in auth) {
       return auth.error;
     }
+
+    /* =====================================================
+       GET PARAMETER
+    ===================================================== */
 
     const { id } = await context.params;
 
@@ -110,9 +38,15 @@ export async function GET(
           success: false,
           message: "System error ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
+
+    /* =====================================================
+       FIND SYSTEM ERROR
+    ===================================================== */
 
     const systemError =
       await prisma.systemError.findUnique({
@@ -121,34 +55,59 @@ export async function GET(
         },
 
         select: {
+          /* -------------------------------------------------
+             BASIC
+          ------------------------------------------------- */
+
           id: true,
 
-          /* Error information */
+          /* -------------------------------------------------
+             ERROR INFORMATION
+          ------------------------------------------------- */
+
           errorType: true,
           message: true,
           stack: true,
 
-          /* Request information */
+          /* -------------------------------------------------
+             REQUEST INFORMATION
+          ------------------------------------------------- */
+
           method: true,
           endpoint: true,
           statusCode: true,
           requestId: true,
 
-          /* Debug information */
+          /* -------------------------------------------------
+             DEBUG INFORMATION
+          ------------------------------------------------- */
+
           metadata: true,
 
-          /* Severity */
+          /* -------------------------------------------------
+             SEVERITY
+          ------------------------------------------------- */
+
           severity: true,
 
-          /* Resolution */
+          /* -------------------------------------------------
+             RESOLUTION
+          ------------------------------------------------- */
+
           resolved: true,
           resolvedAt: true,
           resolvedById: true,
 
-          /* Dates */
+          /* -------------------------------------------------
+             DATE
+          ------------------------------------------------- */
+
           createdAt: true,
 
-          /* NGO */
+          /* -------------------------------------------------
+             NGO
+          ------------------------------------------------- */
+
           ngo: {
             select: {
               id: true,
@@ -156,7 +115,10 @@ export async function GET(
             },
           },
 
-          /* User who triggered error */
+          /* -------------------------------------------------
+             USER WHO TRIGGERED ERROR
+          ------------------------------------------------- */
+
           user: {
             select: {
               id: true,
@@ -166,7 +128,10 @@ export async function GET(
             },
           },
 
-          /* Admin who resolved error */
+          /* -------------------------------------------------
+             SUPER ADMIN WHO RESOLVED ERROR
+          ------------------------------------------------- */
+
           resolvedBy: {
             select: {
               id: true,
@@ -178,35 +143,61 @@ export async function GET(
         },
       });
 
+    /* =====================================================
+       NOT FOUND
+    ===================================================== */
+
     if (!systemError) {
       return NextResponse.json(
         {
           success: false,
           message: "System error not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
-    return NextResponse.json({
-      success: true,
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
 
-      data: {
-        error: systemError,
+    return NextResponse.json(
+      {
+        success: true,
+
+        data: {
+          error: systemError,
+        },
       },
-    });
-  } catch (error) {
-    console.error(
-      "GET SINGLE SYSTEM ERROR:",
-      error
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    /* =====================================================
+       SERVER ERROR
+    ===================================================== */
+
+    console.error(
+      "========== GET SINGLE SYSTEM ERROR =========="
+    );
+
+    console.error(error);
 
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to load system error.",
+
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to load system error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
@@ -214,28 +205,40 @@ export async function GET(
 /* =========================================================
    PATCH SYSTEM ERROR
 
+   PATCH /api/superadmin/system-errors/[id]
+
    Supported:
 
-   1. Resolve
-      {
-        "resolved": true
-      }
+   Resolve:
+   {
+     "resolved": true
+   }
 
-   2. Reopen
-      {
-        "resolved": false
-      }
+   Reopen:
+   {
+     "resolved": false
+   }
 
-   3. Change severity
-      {
-        "severity": "INFO"
-      }
+   Change severity:
+   {
+     "severity": "CRITICAL"
+   }
 
-   4. Resolve + severity
-      {
-        "resolved": true,
-        "severity": "CRITICAL"
-      }
+   Resolve + severity:
+   {
+     "resolved": true,
+     "severity": "CRITICAL"
+   }
+
+   Backward compatibility:
+
+   {
+     "status": "RESOLVED"
+   }
+
+   {
+     "status": "OPEN"
+   }
 ========================================================= */
 
 export async function PATCH(
@@ -245,9 +248,9 @@ export async function PATCH(
   }
 ) {
   try {
-    /* -------------------------------------------------------
-       AUTH
-    ------------------------------------------------------- */
+    /* =====================================================
+       SUPER ADMIN AUTHENTICATION
+    ===================================================== */
 
     const auth = await authenticateSuperAdmin(req);
 
@@ -255,9 +258,9 @@ export async function PATCH(
       return auth.error;
     }
 
-    /* -------------------------------------------------------
-       PARAMETER
-    ------------------------------------------------------- */
+    /* =====================================================
+       GET PARAMETER
+    ===================================================== */
 
     const { id } = await context.params;
 
@@ -267,15 +270,17 @@ export async function PATCH(
           success: false,
           message: "System error ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    /* -------------------------------------------------------
-       BODY
-    ------------------------------------------------------- */
+    /* =====================================================
+       READ REQUEST BODY
+    ===================================================== */
 
-    let body: any;
+    let body: unknown;
 
     try {
       body = await req.json();
@@ -285,13 +290,37 @@ export async function PATCH(
           success: false,
           message: "Invalid JSON request body.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    /* -------------------------------------------------------
-       EXISTING ERROR
-    ------------------------------------------------------- */
+    /* =====================================================
+       VALIDATE BODY
+    ===================================================== */
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      Array.isArray(body)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Request body must be a JSON object.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const data = body as Record<string, unknown>;
+
+    /* =====================================================
+       FIND EXISTING ERROR
+    ===================================================== */
 
     const existing =
       await prisma.systemError.findUnique({
@@ -312,13 +341,15 @@ export async function PATCH(
           success: false,
           message: "System error not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
 
-    /* -------------------------------------------------------
+    /* =====================================================
        UPDATE DATA
-    ------------------------------------------------------- */
+    ===================================================== */
 
     const updateData: {
       resolved?: boolean;
@@ -327,91 +358,86 @@ export async function PATCH(
       severity?: ErrorSeverity;
     } = {};
 
-    /* =======================================================
-       RESOLVED FIELD
-    ======================================================= */
+    /* =====================================================
+       RESOLVED
+    ===================================================== */
 
-    if (typeof body.resolved === "boolean") {
-      if (body.resolved === true) {
+    if (typeof data.resolved === "boolean") {
+      if (data.resolved === true) {
         updateData.resolved = true;
-        updateData.resolvedAt = new Date();
+
+        updateData.resolvedAt =
+          new Date();
+
         updateData.resolvedById =
           auth.superAdmin.id;
       } else {
         updateData.resolved = false;
+
         updateData.resolvedAt = null;
+
         updateData.resolvedById = null;
       }
     }
 
-    /* =======================================================
-       BACKWARD COMPATIBILITY
+    /* =====================================================
+       BACKWARD COMPATIBILITY - STATUS
+    ===================================================== */
 
-       Also allow:
-
-       {
-         "status": "RESOLVED"
-       }
-
-       or
-
-       {
-         "status": "OPEN"
-       }
-    ======================================================= */
-
-    if (body.status === "RESOLVED") {
+    if (data.status === "RESOLVED") {
       updateData.resolved = true;
-      updateData.resolvedAt = new Date();
+
+      updateData.resolvedAt =
+        new Date();
+
       updateData.resolvedById =
         auth.superAdmin.id;
     }
 
-    if (body.status === "OPEN") {
+    if (data.status === "OPEN") {
       updateData.resolved = false;
+
       updateData.resolvedAt = null;
+
       updateData.resolvedById = null;
     }
 
-    /* =======================================================
+    /* =====================================================
        SEVERITY
-
-       Prisma enum:
-
-       INFO
-       WARNING
-       ERROR
-       CRITICAL
-    ======================================================= */
+    ===================================================== */
 
     if (
-      body.severity === "INFO" ||
-      body.severity === "WARNING" ||
-      body.severity === "ERROR" ||
-      body.severity === "CRITICAL"
+      data.severity === "INFO" ||
+      data.severity === "WARNING" ||
+      data.severity === "ERROR" ||
+      data.severity === "CRITICAL"
     ) {
       updateData.severity =
-        body.severity as ErrorSeverity;
+        data.severity as ErrorSeverity;
     }
 
-    /* -------------------------------------------------------
-       VALIDATION
-    ------------------------------------------------------- */
+    /* =====================================================
+       VALIDATE UPDATE
+    ===================================================== */
 
-    if (Object.keys(updateData).length === 0) {
+    if (
+      Object.keys(updateData).length === 0
+    ) {
       return NextResponse.json(
         {
           success: false,
           message:
             "No valid update fields were provided.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
 
-    /* -------------------------------------------------------
-       UPDATE DATABASE
-    ------------------------------------------------------- */
+    /* =====================================================
+       UPDATE SYSTEM ERROR
+    ===================================================== */
 
     const updated =
       await prisma.systemError.update({
@@ -422,26 +448,58 @@ export async function PATCH(
         data: updateData,
 
         select: {
+          /* -------------------------------------------------
+             BASIC
+          ------------------------------------------------- */
+
           id: true,
+
+          /* -------------------------------------------------
+             ERROR INFORMATION
+          ------------------------------------------------- */
 
           errorType: true,
           message: true,
           stack: true,
+
+          /* -------------------------------------------------
+             REQUEST
+          ------------------------------------------------- */
 
           method: true,
           endpoint: true,
           statusCode: true,
           requestId: true,
 
+          /* -------------------------------------------------
+             DEBUG
+          ------------------------------------------------- */
+
           metadata: true,
 
+          /* -------------------------------------------------
+             SEVERITY
+          ------------------------------------------------- */
+
           severity: true,
+
+          /* -------------------------------------------------
+             RESOLUTION
+          ------------------------------------------------- */
 
           resolved: true,
           resolvedAt: true,
           resolvedById: true,
 
+          /* -------------------------------------------------
+             DATE
+          ------------------------------------------------- */
+
           createdAt: true,
+
+          /* -------------------------------------------------
+             NGO
+          ------------------------------------------------- */
 
           ngo: {
             select: {
@@ -449,6 +507,10 @@ export async function PATCH(
               name: true,
             },
           },
+
+          /* -------------------------------------------------
+             USER
+          ------------------------------------------------- */
 
           user: {
             select: {
@@ -458,6 +520,10 @@ export async function PATCH(
               role: true,
             },
           },
+
+          /* -------------------------------------------------
+             RESOLVED BY
+          ------------------------------------------------- */
 
           resolvedBy: {
             select: {
@@ -470,39 +536,56 @@ export async function PATCH(
         },
       });
 
-    /* -------------------------------------------------------
-       RESPONSE
-    ------------------------------------------------------- */
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
 
-    return NextResponse.json({
-      success: true,
+    return NextResponse.json(
+      {
+        success: true,
 
-      message:
-        "System error updated successfully.",
+        message:
+          "System error updated successfully.",
 
-      data: {
-        error: updated,
+        data: {
+          error: updated,
+        },
       },
-    });
-  } catch (error) {
-    console.error(
-      "PATCH SYSTEM ERROR:",
-      error
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    /* =====================================================
+       SERVER ERROR
+    ===================================================== */
+
+    console.error(
+      "========== PATCH SYSTEM ERROR =========="
+    );
+
+    console.error(error);
 
     return NextResponse.json(
       {
         success: false,
+
         message:
-          "Failed to update system error.",
+          error instanceof Error
+            ? error.message
+            : "Failed to update system error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
 
 /* =========================================================
    DELETE SYSTEM ERROR
+
+   DELETE /api/superadmin/system-errors/[id]
 ========================================================= */
 
 export async function DELETE(
@@ -512,6 +595,10 @@ export async function DELETE(
   }
 ) {
   try {
+    /* =====================================================
+       SUPER ADMIN AUTHENTICATION
+    ===================================================== */
+
     const auth =
       await authenticateSuperAdmin(req);
 
@@ -519,19 +606,27 @@ export async function DELETE(
       return auth.error;
     }
 
-    const { id } =
-      await context.params;
+    /* =====================================================
+       GET PARAMETER
+    ===================================================== */
+
+    const { id } = await context.params;
 
     if (!id || id === "undefined") {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "System error ID is required.",
+          message: "System error ID is required.",
         },
-        { status: 400 }
+        {
+          status: 400,
+        }
       );
     }
+
+    /* =====================================================
+       FIND EXISTING ERROR
+    ===================================================== */
 
     const existing =
       await prisma.systemError.findUnique({
@@ -548,12 +643,17 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "System error not found.",
+          message: "System error not found.",
         },
-        { status: 404 }
+        {
+          status: 404,
+        }
       );
     }
+
+    /* =====================================================
+       DELETE
+    ===================================================== */
 
     await prisma.systemError.delete({
       where: {
@@ -561,25 +661,44 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({
-      success: true,
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
 
-      message:
-        "System error deleted successfully.",
-    });
-  } catch (error) {
-    console.error(
-      "DELETE SYSTEM ERROR:",
-      error
+    return NextResponse.json(
+      {
+        success: true,
+
+        message:
+          "System error deleted successfully.",
+      },
+      {
+        status: 200,
+      }
     );
+  } catch (error) {
+    /* =====================================================
+       SERVER ERROR
+    ===================================================== */
+
+    console.error(
+      "========== DELETE SYSTEM ERROR =========="
+    );
+
+    console.error(error);
 
     return NextResponse.json(
       {
         success: false,
+
         message:
-          "Failed to delete system error.",
+          error instanceof Error
+            ? error.message
+            : "Failed to delete system error.",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

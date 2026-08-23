@@ -17,6 +17,8 @@ npm install react-icons
 
 npm install bcryptjs
 npm install -D @types/bcryptjs
+npm install next-auth@beta
+
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.

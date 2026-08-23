@@ -6,7 +6,7 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative flex items-center min-h-[90vh] pt-24 pb-32 overflow-visible">
+    <section className="relative flex items-center min-h-[100vh] -mt-24 pt-36 pb-32 overflow-visible">
       {/* Background Image with Animation */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <motion.div

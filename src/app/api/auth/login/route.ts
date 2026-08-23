@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { prisma } from "../../../../lib/prisma";
 import { verifyPassword } from "../../../../lib/auth";
 import { generateToken } from "../../../../lib/jwt";
@@ -7,120 +6,234 @@ import { UserStatus } from "@prisma/client";
 
 export async function POST(req: Request) {
     try {
-        // Step 1: Read JSON Body
-        const body = await req.json();
-        const { email, password } = body;
-        const normalizedEmail = (email ?? "").trim().toLowerCase();
+        /* =====================================================
+           STEP 1: READ REQUEST BODY
+        ===================================================== */
 
-        // Step 2: Validate Input
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const body = await req.json();
+
+        const {
+            email,
+            password,
+        } = body;
+
+        /* =====================================================
+           STEP 2: NORMALIZE INPUT
+        ===================================================== */
+
+        const normalizedEmail =
+            typeof email === "string"
+                ? email.trim().toLowerCase()
+                : "";
+
+        /* =====================================================
+           STEP 3: VALIDATE INPUT
+        ===================================================== */
+
+        const emailRegex =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         if (
             !normalizedEmail ||
             !emailRegex.test(normalizedEmail) ||
-            !password ||
+            typeof password !== "string" ||
             password.length < 8
         ) {
             return NextResponse.json(
-                { success: false, message: "Validation Failed" },
-                { status: 400 }
+                {
+                    success: false,
+                    message: "Validation Failed",
+                },
+                {
+                    status: 400,
+                }
             );
         }
 
-        // Step 4: Find User
-        const user = await prisma.user.findFirst({
-            where: {
-                email: normalizedEmail,
-                isDeleted: false,
-            },
-        });
+        /* =====================================================
+           STEP 4: FIND USER
+        ===================================================== */
 
-        // Step 5: If User Not Found
+        const user =
+            await prisma.user.findFirst({
+                where: {
+                    email: normalizedEmail,
+                    isDeleted: false,
+                },
+            });
+
+        /* =====================================================
+           STEP 5: USER NOT FOUND
+        ===================================================== */
+
         if (!user) {
             return NextResponse.json(
-                { success: false, message: "Invalid Email or Password" },
-                { status: 401 }
+                {
+                    success: false,
+                    message:
+                        "Invalid Email or Password",
+                },
+                {
+                    status: 401,
+                }
             );
         }
 
-        // Step 6: Check Password Exists
+        /* =====================================================
+           STEP 6: CHECK PASSWORD
+        ===================================================== */
+
         if (!user.password) {
             return NextResponse.json(
-                { success: false, message: "Account has no password" },
-                { status: 400 }
+                {
+                    success: false,
+                    message:
+                        "Account has no password",
+                },
+                {
+                    status: 400,
+                }
             );
         }
 
-        // Step 7: Check User Status
-        if (user.status !== UserStatus.ACTIVE) {
+        /* =====================================================
+           STEP 7: CHECK ACCOUNT STATUS
+        ===================================================== */
+
+        if (
+            user.status !==
+            UserStatus.ACTIVE
+        ) {
             return NextResponse.json(
-                { success: false, message: "Account is inactive" },
-                { status: 403 }
+                {
+                    success: false,
+                    message:
+                        "Account is inactive",
+                },
+                {
+                    status: 403,
+                }
             );
         }
 
-        // Step 8: Compare Password
-        const isPasswordValid = await verifyPassword(
-            password,
-            user.password
-        );
+        /* =====================================================
+           STEP 8: VERIFY PASSWORD
+        ===================================================== */
+
+        const isPasswordValid =
+            await verifyPassword(
+                password,
+                user.password
+            );
 
         if (!isPasswordValid) {
             return NextResponse.json(
-                { success: false, message: "Invalid Email or Password" },
-                { status: 401 }
+                {
+                    success: false,
+                    message:
+                        "Invalid Email or Password",
+                },
+                {
+                    status: 401,
+                }
             );
         }
 
-        // Step 9: Generate Token
-        const token = generateToken({
-            id: user.id,
-            ngoId: user.ngoId ?? "",
-            role: user.role,
-            email: user.email,
-        });
-console.log("Generated Token:", token);
+        /* =====================================================
+           STEP 9: GENERATE JWT
+        ===================================================== */
 
-        // Step 10: Set HttpOnly Cookie
-        // In Next.js App Router, cookies() needs to be awaited
-        const cookieStore = await cookies();
-        cookieStore.set("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            path: "/",
-            maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
-        });
+        const token =
+            generateToken({
+                id: user.id,
+                ngoId: user.ngoId ?? "",
+                role: user.role,
+                email: user.email,
+            });
 
-        // Step 11: Return Success (Excluding sensitive data like the password)
-        return NextResponse.json(
+        console.log(
+            "LOGIN SUCCESS:",
             {
-                success: true,
-                message: "Login Successful",
-                user: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    role: user.role,
-                    image: user.image,
-                },
-            },
-            { status: 200 }
+                userId: user.id,
+                role: user.role,
+                email: user.email,
+            }
         );
 
+        /* =====================================================
+           STEP 10: CREATE RESPONSE
+        ===================================================== */
+
+        const response =
+            NextResponse.json(
+                {
+                    success: true,
+
+                    message:
+                        "Login Successful",
+
+                    user: {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        image: user.image,
+                    },
+                },
+                {
+                    status: 200,
+                }
+            );
+
+        /* =====================================================
+           STEP 11: SET JWT COOKIE
+        ===================================================== */
+
+        response.cookies.set(
+            "token",
+            token,
+            {
+                httpOnly: true,
+
+                secure:
+                    process.env.NODE_ENV ===
+                    "production",
+
+                sameSite: "lax",
+
+                path: "/",
+
+                maxAge:
+                    7 *
+                    24 *
+                    60 *
+                    60,
+            }
+        );
+
+        /* =====================================================
+           STEP 12: RETURN RESPONSE
+        ===================================================== */
+
+        return response;
+
     } catch (error) {
-        console.error("[LOGIN_ERROR]", error);
+        console.error(
+            "[LOGIN_ERROR]",
+            error
+        );
 
         return NextResponse.json(
             {
                 success: false,
+
                 message:
                     error instanceof Error
                         ? error.message
-                        : "Login Failed"
+                        : "Login Failed",
             },
             {
-                status: 500
+                status: 500,
             }
         );
     }
