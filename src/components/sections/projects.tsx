@@ -257,7 +257,7 @@ export function ProjectsSection() {
   }, [selectedProject]);
 
   return (
-    <section id="projects" className="py-24 relative min-h-screen bg-background overflow-hidden">
+    <section id="projects" className="py-16 sm:py-24 relative min-h-screen bg-background overflow-hidden">
       
       <div className="absolute inset-0 z-0 pointer-events-none">
         <div className="absolute top-1/2 left-0 w-[50vw] h-[50vw] bg-primary/5 rounded-full blur-[120px] -translate-y-1/2 -translate-x-1/2" />
@@ -266,12 +266,12 @@ export function ProjectsSection() {
 
       <div className="container px-4 mx-auto relative z-10 w-full max-w-7xl">
         
-        <div className="flex flex-col items-center mb-20 text-center">
+        <div className="flex flex-col items-center mb-12 sm:mb-20 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-6"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-4 sm:mb-6"
           >
             <Folder className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">Case Studies</span>
@@ -280,7 +280,7 @@ export function ProjectsSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-6xl font-black text-heading mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-6xl font-black text-heading mb-4 sm:mb-6 tracking-tight"
           >
             Engineering Portfolio
           </motion.h2>
@@ -289,13 +289,13 @@ export function ProjectsSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-paragraph max-w-3xl text-lg md:text-xl font-medium leading-relaxed"
+            className="text-paragraph max-w-3xl text-base sm:text-lg md:text-xl font-medium leading-relaxed"
           >
             A technical deep dive into my core software engineering projects, showcasing architecture, problem-solving, and implementation details.
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 perspective-[2000px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10 perspective-[2000px]">
           <AnimatePresence>
             {PROJECTS.map((project, idx) => (
               <motion.div
@@ -314,7 +314,7 @@ export function ProjectsSection() {
 
       <AnimatePresence>
         {selectedProject && (
-          <div className="fixed inset-0 z-[200] flex justify-center sm:px-4 sm:py-6 md:p-8">
+          <div className="fixed inset-0 z-[200] flex justify-center p-0 sm:p-4 md:p-8">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -331,7 +331,7 @@ export function ProjectsSection() {
               <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 flex items-center gap-3">
                 <button 
                   onClick={() => setSelectedProject(null)}
-                  className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-primary hover:border-primary transition-all shadow-lg"
+                  className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-primary hover:border-primary transition-all shadow-lg shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -340,23 +340,23 @@ export function ProjectsSection() {
               <div className="overflow-y-auto overflow-x-hidden hide-scrollbar bg-background flex-grow">
                 
                 {/* Hero Section of Case Study */}
-                <motion.div layoutId={`image-${selectedProject.id}`} className="relative w-full h-[40vh] min-h-[300px] md:h-[50vh] flex-shrink-0">
+                <motion.div layoutId={`image-${selectedProject.id}`} className="relative w-full h-[32vh] min-h-[220px] sm:min-h-[300px] md:h-[50vh] flex-shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-black/30 z-10" />
                   <img src={selectedProject.image} alt={selectedProject.title} className="w-full h-full object-cover" />
                   
-                  <div className="absolute bottom-0 left-0 w-full p-6 md:p-12 z-20 container mx-auto">
+                  <div className="absolute bottom-0 left-0 w-full p-4 sm:p-6 md:p-12 z-20 container mx-auto">
                     <div className="max-w-4xl">
-                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2 sm:mb-4">
                         {selectedProject.category.split('|').map((cat, i) => (
-                          <span key={i} className="px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest bg-primary/20 backdrop-blur-md text-primary border border-primary/30">
+                          <span key={i} className="px-2.5 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-widest bg-primary/20 backdrop-blur-md text-primary border border-primary/30">
                             {cat.trim()}
                           </span>
                         ))}
                       </div>
-                      <motion.h2 layoutId={`title-${selectedProject.id}`} className="text-4xl md:text-6xl font-black text-heading mb-4 leading-tight">
+                      <motion.h2 layoutId={`title-${selectedProject.id}`} className="text-2xl sm:text-4xl md:text-6xl font-black text-heading mb-2 sm:mb-4 leading-tight">
                         {selectedProject.title}
                       </motion.h2>
-                      <p className="text-xl md:text-2xl text-paragraph font-medium">
+                      <p className="text-sm sm:text-xl md:text-2xl text-paragraph font-medium line-clamp-2 sm:line-clamp-none">
                         {selectedProject.shortDescription}
                       </p>
                     </div>
@@ -364,7 +364,7 @@ export function ProjectsSection() {
                 </motion.div>
 
                 {/* Content Grid */}
-                <div className="container mx-auto px-6 md:px-12 py-12">
+                <div className="container mx-auto px-4 sm:px-8 md:px-12 py-6 sm:py-12">
                   <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     
                     {/* Main Content - Left Column (8 cols) */}
@@ -407,40 +407,40 @@ export function ProjectsSection() {
                           <Layers className="w-6 h-6 text-primary" /> Technical Implementation
                         </h3>
                         
-                        <div className="space-y-8">
-                          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-start">
-                            <div className="flex items-center gap-2 text-heading font-bold">
-                              <Server className="w-5 h-5 text-primary" /> System Architecture
+                        <div className="space-y-6 sm:space-y-8">
+                          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] md:grid-cols-[200px_1fr] gap-2 sm:gap-4 md:gap-8 items-start">
+                            <div className="flex items-center gap-2 text-heading font-bold text-sm sm:text-base">
+                              <Server className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" /> System Architecture
                             </div>
-                            <p className="text-paragraph leading-relaxed">{selectedProject.architecture}</p>
+                            <p className="text-paragraph text-sm sm:text-base leading-relaxed">{selectedProject.architecture}</p>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-start">
-                            <div className="flex items-center gap-2 text-heading font-bold">
-                              <Database className="w-5 h-5 text-primary" /> Database Design
+                          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] md:grid-cols-[200px_1fr] gap-2 sm:gap-4 md:gap-8 items-start">
+                            <div className="flex items-center gap-2 text-heading font-bold text-sm sm:text-base">
+                              <Database className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" /> Database Design
                             </div>
-                            <p className="text-paragraph leading-relaxed">{selectedProject.databaseDesign}</p>
+                            <p className="text-paragraph text-sm sm:text-base leading-relaxed">{selectedProject.databaseDesign}</p>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-start">
-                            <div className="flex items-center gap-2 text-heading font-bold">
-                              <Key className="w-5 h-5 text-primary" /> Authentication Flow
+                          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] md:grid-cols-[200px_1fr] gap-2 sm:gap-4 md:gap-8 items-start">
+                            <div className="flex items-center gap-2 text-heading font-bold text-sm sm:text-base">
+                              <Key className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" /> Authentication Flow
                             </div>
-                            <p className="text-paragraph leading-relaxed">{selectedProject.authentication}</p>
+                            <p className="text-paragraph text-sm sm:text-base leading-relaxed">{selectedProject.authentication}</p>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-start">
-                            <div className="flex items-center gap-2 text-heading font-bold">
-                              <Zap className="w-5 h-5 text-primary" /> API Integration
+                          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] md:grid-cols-[200px_1fr] gap-2 sm:gap-4 md:gap-8 items-start">
+                            <div className="flex items-center gap-2 text-heading font-bold text-sm sm:text-base">
+                              <Zap className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" /> API Integration
                             </div>
-                            <p className="text-paragraph leading-relaxed">{selectedProject.apiIntegration}</p>
+                            <p className="text-paragraph text-sm sm:text-base leading-relaxed">{selectedProject.apiIntegration}</p>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 md:gap-8 items-start">
-                            <div className="flex items-center gap-2 text-heading font-bold">
-                              <Folder className="w-5 h-5 text-primary" /> Folder Structure
+                          <div className="grid grid-cols-1 sm:grid-cols-[160px_1fr] md:grid-cols-[200px_1fr] gap-2 sm:gap-4 md:gap-8 items-start">
+                            <div className="flex items-center gap-2 text-heading font-bold text-sm sm:text-base">
+                              <Folder className="w-4 sm:w-5 h-4 sm:h-5 text-primary shrink-0" /> Folder Structure
                             </div>
-                            <p className="text-paragraph leading-relaxed">{selectedProject.folderStructure}</p>
+                            <p className="text-paragraph text-sm sm:text-base leading-relaxed">{selectedProject.folderStructure}</p>
                           </div>
                         </div>
                       </section>

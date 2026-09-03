@@ -122,20 +122,20 @@ function ToolkitCard({ category, delay }: { category: typeof TOOLKIT_CATEGORIES[
           <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white/40 opacity-0 group-hover:opacity-100 group-hover:animate-sweep" />
         </div>
 
-        <div className="relative z-20 h-full w-full bg-white/50 backdrop-blur-xl rounded-[calc(24px-1px)] p-6 md:p-8 flex flex-col shadow-sm group-hover:shadow-[0_20px_40px_-15px_rgba(255,122,89,0.15)] group-hover:-translate-y-2 transition-all duration-300">
+        <div className="relative z-20 h-full w-full bg-white/50 backdrop-blur-xl rounded-[calc(24px-1px)] p-5 sm:p-6 md:p-8 flex flex-col shadow-sm group-hover:shadow-[0_20px_40px_-15px_rgba(255,122,89,0.15)] group-hover:-translate-y-2 transition-all duration-300">
           
           <div className="flex items-center justify-between mb-4">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FFF5F2] to-[#FFE5DF] flex items-center justify-center text-primary shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500">
-                 <Icon className="w-6 h-6 group-hover:rotate-12 transition-transform duration-500" />
+             <div className="flex items-center gap-3 sm:gap-4">
+               <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl bg-gradient-to-br from-[#FFF5F2] to-[#FFE5DF] flex items-center justify-center text-primary shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                 <Icon className="w-5 sm:w-6 h-5 sm:h-6 group-hover:rotate-12 transition-transform duration-500" />
                </div>
-               <h3 className="text-xl font-bold text-[#2E3564] tracking-tight">{category.title}</h3>
+               <h3 className="text-lg sm:text-xl font-bold text-[#2E3564] tracking-tight">{category.title}</h3>
              </div>
              {/* Small proficiency indicator */}
-             <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,122,89,0.8)] group-hover:animate-pulse" />
+             <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(255,122,89,0.8)] group-hover:animate-pulse shrink-0" />
           </div>
 
-          <p className="text-sm text-paragraph leading-relaxed mb-6 font-medium flex-grow">
+          <p className="text-xs sm:text-sm text-paragraph leading-relaxed mb-6 font-medium flex-grow">
             {category.description}
           </p>
 
@@ -143,7 +143,7 @@ function ToolkitCard({ category, delay }: { category: typeof TOOLKIT_CATEGORIES[
             {category.technologies.map((tech, i) => (
               <span 
                 key={i} 
-                className="px-3 py-1.5 rounded-full text-xs font-semibold text-[#2E3564] bg-white/70 backdrop-blur-md shadow-sm border border-white hover:scale-105 hover:border-primary/40 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_rgba(255,122,89,0.2)] transition-all duration-300"
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-semibold text-[#2E3564] bg-white/70 backdrop-blur-md shadow-sm border border-white hover:scale-105 hover:border-primary/40 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_15px_rgba(255,122,89,0.2)] transition-all duration-300"
               >
                 {tech}
               </span>
@@ -158,7 +158,7 @@ function ToolkitCard({ category, delay }: { category: typeof TOOLKIT_CATEGORIES[
 
 export function ToolkitSection() {
   return (
-    <section id="toolkit" className="py-24 relative min-h-screen bg-[#FFF8F5] overflow-hidden">
+    <section id="toolkit" className="py-16 sm:py-24 relative min-h-screen bg-[#FFF8F5] overflow-hidden">
       
       <style>{`
         @keyframes sweep {
@@ -204,12 +204,12 @@ export function ToolkitSection() {
       <div className="container px-4 mx-auto relative z-10 w-full max-w-7xl">
         
         {/* Header */}
-        <div className="flex flex-col items-center mb-20 text-center">
+        <div className="flex flex-col items-center mb-12 sm:mb-20 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary mb-6 backdrop-blur-md shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary mb-4 sm:mb-6 backdrop-blur-md shadow-sm"
           >
             <Sparkles className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-widest">Engineering Toolkit</span>
@@ -218,7 +218,7 @@ export function ToolkitSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl lg:text-6xl font-black text-[#2E3564] mb-6 tracking-tight drop-shadow-sm"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-[#2E3564] mb-4 sm:mb-6 tracking-tight drop-shadow-sm"
           >
             Engineering Toolkit
           </motion.h2>
@@ -227,7 +227,7 @@ export function ToolkitSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-paragraph max-w-3xl text-lg md:text-xl font-medium leading-relaxed"
+            className="text-paragraph max-w-3xl text-base sm:text-lg md:text-xl font-medium leading-relaxed"
           >
             A curated collection of technologies, frameworks, platforms, and tools I use to design, build, deploy, and scale modern software applications.
           </motion.p>

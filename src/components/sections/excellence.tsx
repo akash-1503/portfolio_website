@@ -79,7 +79,7 @@ function ExcellenceCard({ children, delay, className }: { children: React.ReactN
       >
         <div className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-5 blur-2xl transition-opacity duration-500 rounded-[24px] z-0 pointer-events-none" />
         
-        <div className="relative z-10 h-full w-full bg-card/60 backdrop-blur-xl rounded-[calc(24px-1px)] p-6 md:p-8 flex flex-col border border-glass-border shadow-sm group-hover:shadow-xl transition-all duration-300">
+        <div className="relative z-10 h-full w-full bg-card/60 backdrop-blur-xl rounded-[calc(24px-1px)] p-5 sm:p-6 md:p-8 flex flex-col border border-glass-border shadow-sm group-hover:shadow-xl transition-all duration-300">
           {children}
         </div>
       </motion.div>
@@ -89,7 +89,7 @@ function ExcellenceCard({ children, delay, className }: { children: React.ReactN
 
 export function ExcellenceSection() {
   return (
-    <section id="excellence" className="py-24 relative min-h-screen bg-background overflow-hidden">
+    <section id="excellence" className="py-16 sm:py-24 relative min-h-screen bg-background overflow-hidden">
       
       {/* Background Effects */}
       <div className="absolute inset-0 z-0 pointer-events-none">
@@ -101,12 +101,12 @@ export function ExcellenceSection() {
       <div className="container px-4 mx-auto relative z-10 w-full max-w-7xl">
         
         {/* Header */}
-        <div className="flex flex-col items-center mb-20 text-center">
+        <div className="flex flex-col items-center mb-12 sm:mb-20 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-6"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-4 sm:mb-6"
           >
             <Star className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">Professional Profile</span>
@@ -115,7 +115,7 @@ export function ExcellenceSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl lg:text-6xl font-black text-heading mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-heading mb-4 sm:mb-6 tracking-tight"
           >
             Professional Excellence
           </motion.h2>
@@ -124,14 +124,14 @@ export function ExcellenceSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-paragraph max-w-3xl text-lg md:text-xl font-medium leading-relaxed"
+            className="text-paragraph max-w-3xl text-base sm:text-lg md:text-xl font-medium leading-relaxed"
           >
             A collection of certifications, technical achievements, and professional strengths that reflect my continuous learning and engineering mindset.
           </motion.p>
         </div>
 
         {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           
           {/* Card 1: Certifications */}
           <ExcellenceCard delay={0.1}>

@@ -248,12 +248,12 @@ export function ExperienceSection() {
       <div className="container px-4 mx-auto relative z-10 w-full max-w-5xl">
 
         {/* Header */}
-        <div className="flex flex-col items-center mb-20 text-center">
+        <div className="flex flex-col items-center mb-12 sm:mb-20 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-6"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary mb-4 sm:mb-6"
           >
             <Briefcase className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">Career Timeline</span>
@@ -262,7 +262,7 @@ export function ExperienceSection() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl md:text-5xl lg:text-6xl font-black text-heading mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-heading mb-4 sm:mb-6 tracking-tight"
           >
             Professional Experience
           </motion.h2>
@@ -271,7 +271,7 @@ export function ExperienceSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-paragraph max-w-3xl text-lg md:text-xl font-medium leading-relaxed"
+            className="text-paragraph max-w-3xl text-base sm:text-lg md:text-xl font-medium leading-relaxed"
           >
             A journey of continuous learning, collaboration, and building production-ready software through internships and real-world engineering projects.
           </motion.p>
@@ -281,7 +281,7 @@ export function ExperienceSection() {
         <div className="relative">
           <div className="absolute left-8 md:left-12 top-0 bottom-0 w-px bg-gradient-to-b from-primary/50 via-border to-transparent hidden md:block" />
 
-          <div className="space-y-12">
+          <div className="space-y-8 sm:space-y-12">
             {EXPERIENCES.map((exp, idx) => (
               <div key={exp.id} className="relative flex flex-col md:flex-row gap-6 md:gap-10">
                 <div className="hidden md:flex flex-col items-center pt-8 relative z-20">
@@ -312,7 +312,7 @@ export function ExperienceSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 md:p-8"
           >
             {/* Backdrop */}
             <motion.div 
@@ -329,26 +329,26 @@ export function ExperienceSection() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 100, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-card rounded-[32px] border border-border shadow-2xl z-10 hide-scrollbar"
+              className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-card rounded-2xl sm:rounded-[32px] border border-border shadow-2xl z-10 hide-scrollbar"
             >
               {/* Sticky Header with Close Button */}
-              <div className="sticky top-0 right-0 left-0 z-50 flex justify-between items-center p-6 bg-card/80 backdrop-blur-xl border-b border-border">
+              <div className="sticky top-0 right-0 left-0 z-50 flex justify-between items-center p-4 sm:p-6 bg-card/80 backdrop-blur-xl border-b border-border">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                     <Briefcase className="w-5 h-5" />
                   </div>
-                  <h3 className="font-bold text-heading text-lg">Experience Details</h3>
+                  <h3 className="font-bold text-heading text-base sm:text-lg">Experience Details</h3>
                 </div>
                 <button
                   onClick={() => setSelectedExperience(null)}
-                  className="w-10 h-10 rounded-full bg-section flex items-center justify-center text-paragraph hover:text-primary hover:bg-primary/10 transition-colors border border-border"
+                  className="w-10 h-10 rounded-full bg-section flex items-center justify-center text-paragraph hover:text-primary hover:bg-primary/10 transition-colors border border-border shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Modal Content */}
-              <div className="p-6 md:p-12 space-y-16">
+              <div className="p-5 sm:p-8 md:p-12 space-y-8 sm:space-y-12 md:space-y-16">
                 
                 {/* Hero Header */}
                 <div>
