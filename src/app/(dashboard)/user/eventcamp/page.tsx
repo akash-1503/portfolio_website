@@ -21,8 +21,9 @@ type RegistrationStep = "DETAILS" | "CONFIRM" | "SUCCESS";
 interface EventItem {
   id: string;
   title: string;
-  
-  status: "UPCOMING" | "ONGOING";
+
+  status: "UPCOMING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+
   location: string;
   description: string;
   participants: number;
@@ -34,6 +35,7 @@ interface EventItem {
   startDate: string;
   endDate: string | null;
   coverImage: string | null;
+
   program: {
     id: string;
     name: string;
@@ -232,19 +234,19 @@ export default function EventsCampaignsPage() {
 );
 
       // Update event list locally
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.id === selectedEvent.id
-            ? {
-                ...event,
-                isRegistered: true,
-                canRegister: false,
-                participants: event.participants + 1,
-                registeredAt: result.data.registeredAt,
-              }
-            : event
-        )
-      );
+    setEvents((prevEvents) =>
+  prevEvents.map((event) =>
+    event.id === selectedEvent.id
+      ? {
+          ...event,
+          isRegistered: true,
+          canRegister: false,
+          participants: event.participants + 1,
+          registeredAt: result.data.registeredAt,
+        }
+      : event
+  )
+);
 
       await fetchEventsCampaigns();
 setRegistrationStep("SUCCESS");
@@ -421,11 +423,19 @@ setRegistrationStep("SUCCESS");
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${ev.isRegistered ? 'bg-green-100 border border-green-200 text-green-700' : 'bg-blue-50 border border-blue-100 text-blue-600'}`}>
                       {ev.isRegistered ? <CheckCircle2 className="w-6 h-6" /> : <Calendar className="w-6 h-6" />}
                     </div>
-                    <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border shrink-0 ${
-                      ev.status === 'UPCOMING' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-green-50 text-green-700 border-green-200'
-                    }`}>
-                      {ev.status}
-                    </span>
+                    <span
+  className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border shrink-0 ${
+    ev.status === "UPCOMING"
+      ? "bg-blue-50 text-blue-700 border-blue-200"
+      : ev.status === "ACTIVE"
+      ? "bg-green-50 text-green-700 border-green-200"
+      : ev.status === "COMPLETED"
+      ? "bg-gray-100 text-gray-600 border-gray-200"
+      : "bg-red-50 text-red-700 border-red-200"
+  }`}
+>
+  {ev.status}
+</span>
                   </div>
                   
                   {/* Body: Title & Info */}

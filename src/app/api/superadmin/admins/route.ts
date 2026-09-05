@@ -87,7 +87,7 @@ async function authenticateSuperAdmin(req: NextRequest) {
 }
 
 /* =========================================================
-   GET ADMINS
+   GET ADMINS + NGOs
    GET /api/superadmin/admins
 ========================================================= */
 
@@ -116,7 +116,7 @@ export async function GET(req: NextRequest) {
       searchParams.get("ngoId")?.trim() || "";
 
     /* -----------------------------------------------------
-       3. BUILD WHERE
+       3. BUILD ADMIN WHERE
     ----------------------------------------------------- */
 
     const where: any = {
@@ -128,6 +128,7 @@ export async function GET(req: NextRequest) {
      * If ngoId is supplied, return admins
      * attached to that NGO.
      */
+
     if (ngoId) {
       where.ngoId = ngoId;
     }
@@ -138,6 +139,7 @@ export async function GET(req: NextRequest) {
      * - Admin email
      * - NGO name
      */
+
     if (search) {
       where.OR = [
         {
@@ -193,12 +195,9 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
 
         /*
-         * IMPORTANT
-         *
-         * This fetches the NGO attached through:
-         *
          * User.ngoId -> NGO.id
          */
+
         ngo: {
           select: {
             id: true,
@@ -214,7 +213,48 @@ export async function GET(req: NextRequest) {
     });
 
     /* -----------------------------------------------------
-       5. RESPONSE
+       5. FETCH ALL ACTIVE NGOs
+       
+       IMPORTANT:
+       This query is independent of admins.
+       
+       Therefore it also works when:
+       
+       NGO exists
+       +
+       No ADMIN exists yet
+       
+       This is what allows the FIRST ADMIN to be created.
+    ----------------------------------------------------- */
+
+    const ngos = await prisma.nGO.findMany({
+      where: {
+        isDeleted: false,
+      },
+
+      orderBy: {
+        name: "asc",
+      },
+
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        city: true,
+        state: true,
+      },
+    });
+
+    /* -----------------------------------------------------
+       6. RESPONSE
+       
+       Both pages now receive the data they need:
+       
+       Admin Management:
+         data.admins
+       
+       Create Admin:
+         data.ngos
     ----------------------------------------------------- */
 
     return NextResponse.json(
@@ -223,6 +263,7 @@ export async function GET(req: NextRequest) {
 
         data: {
           admins,
+          ngos,
           total: admins.length,
         },
       },
@@ -411,6 +452,8 @@ export async function POST(req: NextRequest) {
         id: true,
         name: true,
         email: true,
+        city: true,
+        state: true,
       },
     });
 
@@ -451,12 +494,11 @@ export async function POST(req: NextRequest) {
         status: UserStatus.ACTIVE,
 
         /*
-         * VERY IMPORTANT
-         *
-         * This connects the Admin to the NGO.
+         * Connect admin to the EXISTING NGO.
          *
          * User.ngoId === NGO.id
          */
+
         ngoId: ngo.id,
 
         isDeleted: false,

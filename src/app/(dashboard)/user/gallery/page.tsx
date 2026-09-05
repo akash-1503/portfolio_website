@@ -13,119 +13,72 @@ import {
 import Link from "next/link";
 
 // ============================================================================
-// MOCK DATA (Simulating the User Read-Only Fetch of PUBLISHED Content)
+// TYPES
 // ============================================================================
 
-type ContentType = "Story" | "Photo" | "Video" | "Impact";
-type Category = "All" | "Education" | "Environment" | "Health" | "Emergency";
+type ContentType =
+  | "Story"
+  | "Photo"
+  | "Video"
+  | "Impact";
+
+interface GalleryMedia {
+  id: string;
+  mediaUrl: string;
+  thumbnailUrl?: string | null;
+  mediaType: "IMAGE" | "VIDEO";
+  sortOrder: number;
+}
 
 interface GalleryRecord {
   id: string;
+
   type: ContentType;
-  category: Category;
+
+  category: string;
+
   isFeatured?: boolean;
+
   title: string;
+
   date: string;
+
   location: string;
+
   shortDesc: string;
+
   fullDesc?: string;
+
   coverImage: string | null;
-  images?: string[];
-  duration?: string;
-  stats?: { label: string; value: string }[];
-  related?: { type: "Program" | "Event" | "Campaign"; name: string; link: string };
+
+  images: string[];
+
+  videos: string[];
+
+  media: GalleryMedia[];
+
+  mediaCount: number;
+
+  eventId?: string | null;
+
+  campaignId?: string | null;
+
+  event?: any | null;
+
+  campaign?: any | null;
+
+  createdAt: string;
+
+  updatedAt: string;
 }
 
-const mockDatabase: GalleryRecord[] = [
-  {
-    id: "s-1",
-    type: "Story",
-    category: "Education",
-    isFeatured: true,
-    title: "Education Drive Reaches 120 Students",
-    date: "August 12, 2026",
-    location: "Chhatrapati Sambhajinagar",
-    shortDesc: "Our volunteers distributed educational materials to students in rural communities.",
-    fullDesc: "Last Sunday, our volunteers visited the rural outskirts of Chhatrapati Sambhajinagar to launch our annual Education Drive. Thanks to the overwhelming support of our donors, we successfully distributed comprehensive school kits to 120 students.\n\nEach kit included textbooks, notebooks, stationery, and a school bag. The joy on the children's faces was immeasurable. This initiative is a core part of our mission to ensure that no child is deprived of basic educational resources.",
-    coverImage: null,
-    images: ["img1", "img2", "img3"],
-    stats: [
-      { label: "Students Reached", value: "120" },
-      { label: "Books Distributed", value: "350" },
-      { label: "Volunteers", value: "25" }
-    ],
-    related: { type: "Program", name: "Education For All", link: "/user/programs" }
-  },
-  {
-    id: "s-2",
-    type: "Story",
-    category: "Environment",
-    title: "Green Canopy Tree Plantation",
-    date: "August 05, 2026",
-    location: "Pune City Park",
-    shortDesc: "Planting over 500 saplings to promote urban greenery and combat climate change.",
-    fullDesc: "A massive community effort brought together over 100 residents to plant 500 indigenous tree saplings in Pune City Park.",
-    coverImage: null,
-    related: { type: "Event", name: "Tree Plantation Drive 2026", link: "/user/eventcamp" }
-  },
-  {
-    id: "s-3",
-    type: "Story",
-    category: "Health",
-    title: "Women's Skill Development Workshop",
-    date: "July 22, 2026",
-    location: "Nashik",
-    shortDesc: "Empowering 50 women with essential vocational skills for financial independence.",
-    fullDesc: "A 3-day workshop teaching tailoring, basic accounting, and digital literacy to enable sustainable livelihood generation.",
-    coverImage: null,
-    related: { type: "Campaign", name: "Empower Her", link: "/user/events" }
-  },
-  {
-    id: "i-1",
-    type: "Impact",
-    category: "Emergency",
-    title: "Flood Relief Mission 2026",
-    date: "July 10, 2026",
-    location: "Kolhapur District",
-    shortDesc: "Immediate response and support provided during the devastating July floods.",
-    fullDesc: "In response to severe regional flooding, our rapid relief teams distributed critical dry rations, clean drinking water, and hygiene essentials to displaced families across 12 villages.",
-    coverImage: null,
-    stats: [
-      { label: "Families Supported", value: "500" },
-      { label: "Food Kits", value: "1,200" },
-      { label: "Volunteers", value: "80" },
-      { label: "Funds Mobilized", value: "₹4.2L" }
-    ],
-    related: { type: "Campaign", name: "Flood Relief Fund", link: "/user/eventcamp" }
-  },
-  { id: "p-1", type: "Photo", category: "Education", title: "Volunteers distributing kits", date: "Aug 12, 2026", location: "Chhatrapati Sambhajinagar", shortDesc: "Education Drive 2026", coverImage: null },
-  { id: "p-2", type: "Photo", category: "Environment", title: "Community cleaning riverbank", date: "Aug 01, 2026", location: "Pune", shortDesc: "River Cleanup Initiative", coverImage: null },
-  { id: "p-3", type: "Photo", category: "Health", title: "Health checkup for seniors", date: "Jul 28, 2026", location: "Nashik", shortDesc: "Free Medical Camp", coverImage: null },
-  {
-    id: "v-1",
-    type: "Video",
-    category: "Education",
-    title: "Our Education Drive Highlights",
-    date: "Aug 15, 2026",
-    location: "Maharashtra",
-    shortDesc: "Watch how your contributions are helping children learn.",
-    coverImage: null,
-    duration: "2 min 32 sec"
-  },
-  {
-    id: "v-2",
-    type: "Video",
-    category: "Environment",
-    title: "A Day With Our Volunteers",
-    date: "Jul 05, 2026",
-    location: "Pune",
-    shortDesc: "Follow our dedicated team through a day of community service.",
-    coverImage: null,
-    duration: "4 min 15 sec"
-  }
-];
-
-const FILTERS: Category[] = ["All", "Education", "Health", "Environment", "Emergency"];
+interface GalleryStatistics {
+  totalPosts: number;
+  featuredPosts: number;
+  totalPhotos: number;
+  totalVideos: number;
+  totalMedia: number;
+}
 
 // ============================================================================
 // MAIN PAGE COMPONENT
@@ -135,9 +88,9 @@ export default function UserGalleryPage() {
   const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState<"LOADING" | "ERROR" | "SUCCESS">("LOADING");
   const [content, setContent] = useState<GalleryRecord[]>([]);
+  const [statistics, setStatistics] = useState<GalleryStatistics | null>(null);
   
-  // Filters & Pagination
-  const [activeFilter, setActiveFilter] = useState<Category>("All");
+  // Search & Pagination
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
 
@@ -146,13 +99,54 @@ export default function UserGalleryPage() {
   const [viewingPhoto, setViewingPhoto] = useState<GalleryRecord | null>(null);
   const [viewingVideo, setViewingVideo] = useState<GalleryRecord | null>(null);
 
-  // Simulate API Fetch
-  const fetchGalleryData = () => {
-    setStatus("LOADING");
-    setTimeout(() => {
-      setContent(mockDatabase);
+  // Fetch published gallery content from the real backend
+  const fetchGalleryData = async () => {
+    try {
+      setStatus("LOADING");
+
+      const response = await fetch(
+        "/api/user/gallery",
+        {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            result?.error ||
+            "Failed to load gallery."
+        );
+      }
+
+      const gallery =
+        Array.isArray(result?.data?.gallery)
+          ? result.data.gallery
+          : [];
+
+      setContent(gallery);
+
+      setStatistics(
+        result?.data?.statistics || null
+      );
+
       setStatus("SUCCESS");
-    }, 1200);
+    } catch (error) {
+      console.error(
+        "User gallery error:",
+        error
+      );
+
+      setContent([]);
+
+      setStatistics(null);
+
+      setStatus("ERROR");
+    }
   };
 
   useEffect(() => {
@@ -161,10 +155,23 @@ export default function UserGalleryPage() {
   }, []);
 
   // Filtering Logic
-  const filteredContent = content.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.shortDesc.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = activeFilter === "All" || item.category === activeFilter;
-    return matchesSearch && matchesFilter;
+  const normalizedSearch =
+    searchQuery.trim().toLowerCase();
+
+  const filteredContent = content.filter((item) => {
+    const matchesSearch =
+      !normalizedSearch ||
+      item.title
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      item.shortDesc
+        .toLowerCase()
+        .includes(normalizedSearch) ||
+      item.location
+        .toLowerCase()
+        .includes(normalizedSearch);
+
+    return matchesSearch;
   });
 
   const displayedContent = filteredContent.slice(0, visibleCount);
@@ -232,8 +239,13 @@ export default function UserGalleryPage() {
   // ============================================================================
   
   // Editorial Content Grouping
-  const isEditorialMode = activeFilter === "All" && searchQuery === "";
-  const featuredStory = content.find(i => i.isFeatured);
+  const isEditorialMode = searchQuery === "";
+  const featuredStory =
+    content.find(
+      (item) => item.isFeatured
+    ) || content.find(
+      (item) => item.type === "Story"
+    );
   const editorialLatest = content.filter(i => i.type === "Story" && !i.isFeatured).slice(0, 3);
   const editorialImpact = content.filter(i => i.type === "Impact").slice(0, 2);
   const editorialPhotos = content.filter(i => i.type === "Photo").slice(0, 3);
@@ -259,9 +271,6 @@ export default function UserGalleryPage() {
 
       {/* --- 1. HERO SECTION --- */}
       <motion.div variants={containerVariants} initial="hidden" animate="show" className="relative z-10 px-4 md:px-8 mt-6 mb-4 max-w-4xl">
-        <motion.p variants={itemVariants} className="text-[12px] font-extrabold text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-2">
-          <ImageIcon className="w-4 h-4" /> Our Stories & Impact
-        </motion.p>
         <motion.h1 variants={itemVariants} className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight leading-tight mb-4">
           Stories That Create Change
         </motion.h1>
@@ -270,30 +279,18 @@ export default function UserGalleryPage() {
         </motion.p>
       </motion.div>
 
-      {/* --- 2. FILTERS & SEARCH --- */}
-      <div className="relative z-10 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-6 sticky top-0 bg-[#fafafa]/90 backdrop-blur-xl py-4 z-40 border-b border-gray-100/50">
-        <div className="flex overflow-x-auto custom-scrollbar pb-2 md:pb-0 gap-2 snap-x w-full md:w-auto">
-          {FILTERS.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => { setActiveFilter(filter); setSearchQuery(""); setVisibleCount(6); }}
-              className={`snap-start whitespace-nowrap px-6 py-3 rounded-full text-[12px] font-extrabold tracking-wide transition-all border ${
-                activeFilter === filter 
-                ? "bg-white text-gray-900 border-gray-400 shadow-sm" 
-                : "bg-white text-gray-500 hover:bg-gray-50 border-gray-200 shadow-sm"
-              }`}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
+      {/* --- 2. SEARCH --- */}
+      <div className="relative z-10 px-4 md:px-8 flex items-center justify-end gap-6 sticky top-0 bg-[#fafafa]/90 backdrop-blur-xl py-4 z-40 border-b border-gray-100/50">
         <div className="relative w-full md:w-80">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input 
             type="text" 
             placeholder="Search stories, events and activities..."
             value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setVisibleCount(6);
+            }}
             className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-full text-[13px] font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 outline-none shadow-sm transition-all"
           />
         </div>
@@ -309,9 +306,9 @@ export default function UserGalleryPage() {
           </div>
           <h3 className="text-xl font-extrabold text-gray-900 mb-2">Stories are coming soon</h3>
           <p className="text-[14px] font-bold text-gray-500 max-w-sm text-center">We're preparing new updates from our community work. Check back soon!</p>
-          {(activeFilter !== "All" || searchQuery !== "") && (
-            <button onClick={() => { setActiveFilter("All"); setSearchQuery(""); }} className="mt-6 px-6 py-2.5 bg-white border border-gray-300 text-gray-900 rounded-full text-[12px] font-extrabold shadow-sm hover:bg-gray-50 transition-colors">
-              Clear Filters
+          {searchQuery !== "" && (
+            <button onClick={() => setSearchQuery("")} className="mt-6 px-6 py-2.5 bg-white border border-gray-300 text-gray-900 rounded-full text-[12px] font-extrabold shadow-sm hover:bg-gray-50 transition-colors">
+              Clear Search
             </button>
           )}
         </div>
@@ -345,17 +342,6 @@ export default function UserGalleryPage() {
                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                     <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-blue-500"/> {featuredStory.location}</span>
                   </div>
-                  
-                  {featuredStory.stats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-                      {featuredStory.stats.map((stat, i) => (
-                        <div key={i} className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                          <p className="text-xl md:text-2xl font-extrabold text-blue-700">{stat.value}</p>
-                          <p className="text-[10px] font-extrabold text-blue-600/70 uppercase tracking-widest mt-1">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
 
                   <p className="text-[15px] font-medium text-gray-600 leading-relaxed mb-8">
                     {featuredStory.shortDesc}
@@ -388,14 +374,7 @@ export default function UserGalleryPage() {
                       <p className="text-[12px] font-bold text-gray-500">{impact.date}</p>
                     </div>
                     <h4 className="text-2xl font-extrabold text-gray-900 mb-6">{impact.title}</h4>
-                    <div className="grid grid-cols-2 gap-4 mb-8">
-                      {impact.stats?.map((stat, i) => (
-                        <div key={i} className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                          <p className="text-xl font-extrabold text-gray-900">{stat.value}</p>
-                          <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest mt-1">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
+                    <p className="text-[14px] font-medium text-gray-600 leading-relaxed mb-8">{impact.shortDesc}</p>
                     <button onClick={() => setViewingStory(impact)} className="mt-auto w-fit text-[12px] font-extrabold text-orange-700 bg-white border border-orange-200 shadow-sm px-6 py-3 rounded-full flex items-center gap-1.5 hover:bg-orange-50 transition-colors">
                       Read Full Report <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -415,7 +394,15 @@ export default function UserGalleryPage() {
                 {editorialLatest.map(story => (
                   <div key={story.id} className="bg-white rounded-[2rem] border border-gray-200 shadow-sm flex flex-col overflow-hidden hover:shadow-md transition-shadow group">
                     <div className="h-48 w-full bg-gray-100 flex items-center justify-center border-b border-gray-100 overflow-hidden relative">
-                      <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-700" />
+                      {story.coverImage ? (
+                        <img
+                          src={story.coverImage}
+                          alt={story.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      ) : (
+                        <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-700" />
+                      )}
                     </div>
                     <div className="p-6 flex-1 flex flex-col">
                       <p className="text-[11px] font-bold text-gray-500 mb-2">{story.date}</p>
@@ -433,21 +420,38 @@ export default function UserGalleryPage() {
 
           {/* PHOTO HIGHLIGHTS */}
           {editorialPhotos.length > 0 && (
-            <div className="relative z-10 px-4 md:px-8">
+            <div id="photo-highlights" className="relative z-10 px-4 md:px-8">
               <div className="flex items-end justify-between mb-6">
                 <h3 className="text-2xl font-extrabold text-gray-900 flex items-center gap-2">
                   <ImageIcon className="w-6 h-6 text-green-500" /> Photo Highlights
                 </h3>
-                <button onClick={() => { setActiveFilter("Photos" as any); setSearchQuery(""); }} className="text-[12px] font-extrabold text-gray-900 flex items-center gap-1 hover:bg-gray-50 border border-gray-300 px-4 py-2 rounded-full bg-white shadow-sm transition-colors">
+                <button
+                  onClick={() => {
+                    document
+                      .getElementById("photo-highlights")
+                      ?.scrollIntoView({
+                        behavior: "smooth",
+                      });
+                  }}
+                  className="text-[12px] font-extrabold text-gray-900 flex items-center gap-1 hover:bg-gray-50 border border-gray-300 px-4 py-2 rounded-full bg-white shadow-sm transition-colors"
+                >
                   View All Photos <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {editorialPhotos.map(photo => (
                   <button key={photo.id} onClick={() => setViewingPhoto(photo)} className="relative aspect-[4/3] rounded-[2rem] overflow-hidden bg-gray-100 border border-gray-200 group text-left">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-500" />
-                    </div>
+                    {photo.coverImage ? (
+                      <img
+                        src={photo.coverImage}
+                        alt={photo.title}
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-500" />
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/10 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
                     <div className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-900 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-sm border border-gray-200">
                       <Maximize2 size={16} />
@@ -472,16 +476,28 @@ export default function UserGalleryPage() {
                 {editorialVideos.map(video => (
                   <button key={video.id} onClick={() => setViewingVideo(video)} className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm p-4 flex flex-col group text-left hover:shadow-md transition-shadow">
                     <div className="relative aspect-video rounded-[2rem] bg-gray-100 overflow-hidden flex items-center justify-center border border-gray-100">
-                      <Video className="w-12 h-12 text-gray-300 group-hover:scale-110 transition-transform duration-500" />
+                      {video.videos.length > 0 ? (
+                        <video
+                          src={video.videos[0]}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Video className="w-12 h-12 text-gray-300 group-hover:scale-110 transition-transform duration-500" />
+                      )}
                       <div className="absolute inset-0 bg-gray-900/20 group-hover:bg-gray-900/30 transition-colors" />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center text-purple-600 shadow-lg group-hover:scale-110 transition-transform border border-gray-200">
                           <Play size={20} fill="currentColor" className="ml-1" />
                         </div>
                       </div>
-                      <div className="absolute bottom-4 right-4 bg-white text-gray-900 text-[10px] font-extrabold px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                        {video.duration}
-                      </div>
+                      {video.mediaCount > 1 && (
+                        <div className="absolute bottom-4 right-4 bg-white text-gray-900 text-[10px] font-extrabold px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
+                          {video.mediaCount} videos
+                        </div>
+                      )}
                     </div>
                     <div className="p-4 pt-6">
                       <h4 className="text-[18px] font-extrabold text-gray-900 mb-2">{video.title}</h4>
@@ -504,9 +520,17 @@ export default function UserGalleryPage() {
                 <motion.div key={item.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}>
                   {item.type === "Photo" ? (
                     <button onClick={() => setViewingPhoto(item)} className="relative aspect-[4/3] w-full rounded-[2rem] overflow-hidden bg-gray-100 border border-gray-200 group text-left shadow-sm hover:shadow-md transition-shadow">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform" />
-                      </div>
+                      {item.coverImage ? (
+                        <img
+                          src={item.coverImage}
+                          alt={item.title}
+                          className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform" />
+                        </div>
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/10 to-transparent opacity-80" />
                       <div className="absolute bottom-5 left-5 right-5">
                         <h4 className="text-[15px] font-extrabold text-white leading-tight mb-1">{item.title}</h4>
@@ -516,7 +540,17 @@ export default function UserGalleryPage() {
                   ) : item.type === "Video" ? (
                     <button onClick={() => setViewingVideo(item)} className="bg-white rounded-[2.5rem] border border-gray-200 shadow-sm p-4 flex flex-col group text-left w-full h-full hover:shadow-md transition-shadow">
                       <div className="relative aspect-video rounded-[2rem] bg-gray-100 overflow-hidden flex items-center justify-center border border-gray-100">
-                        <Video className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform" />
+                        {item.videos.length > 0 ? (
+                          <video
+                            src={item.videos[0]}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Video className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform" />
+                        )}
                         <div className="absolute inset-0 bg-gray-900/20" />
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center text-purple-600 shadow-lg">
@@ -533,7 +567,15 @@ export default function UserGalleryPage() {
                     // Stories & Impact Cards
                     <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm flex flex-col overflow-hidden h-full group hover:shadow-md transition-shadow">
                       <div className="h-48 w-full bg-gray-100 flex items-center justify-center border-b border-gray-100 overflow-hidden relative">
-                        <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-700" />
+                        {item.coverImage ? (
+                          <img
+                            src={item.coverImage}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                        ) : (
+                          <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-700" />
+                        )}
                       </div>
                       <div className="p-6 flex-1 flex flex-col">
                         <p className={`text-[10px] font-extrabold uppercase tracking-widest mb-3 px-2.5 py-1 rounded-md w-fit border ${
@@ -621,18 +663,6 @@ export default function UserGalleryPage() {
                     </div>
                   </div>
 
-                  {/* Impact Stats Grid (if available) */}
-                  {viewingStory.stats && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {viewingStory.stats.map((stat, i) => (
-                        <div key={i} className="bg-blue-50/60 p-3.5 rounded-xl border border-blue-200/80 text-center">
-                          <p className="text-xl font-extrabold text-blue-700">{stat.value}</p>
-                          <p className="text-[9px] font-extrabold text-blue-600/80 uppercase tracking-widest mt-0.5">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   {/* Full Story Description */}
                   <div className="space-y-2">
                     <h4 className="text-[13px] font-extrabold text-gray-900 uppercase tracking-wider">Our Story</h4>
@@ -642,31 +672,52 @@ export default function UserGalleryPage() {
                   </div>
 
                   {/* Additional Images Grid */}
-                  {viewingStory.images && viewingStory.images.length > 0 && (
+                  {viewingStory.images.length > 0 && (
                     <div>
-                      <h4 className="text-[13px] font-extrabold text-gray-900 uppercase tracking-wider mb-2">More Moments</h4>
+                      <h4 className="text-[13px] font-extrabold text-gray-900 uppercase tracking-wider mb-2">
+                        More Moments
+                      </h4>
+
                       <div className="grid grid-cols-3 gap-3">
                         {viewingStory.images.map((img, i) => (
-                          <div key={i} className="aspect-[4/3] bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center">
-                            <ImageIcon className="w-6 h-6 text-gray-300" />
+                          <div
+                            key={`${viewingStory.id}-${i}`}
+                            className="aspect-[4/3] bg-gray-100 rounded-xl border border-gray-200 overflow-hidden"
+                          >
+                            <img
+                              src={img}
+                              alt={`${viewingStory.title} ${i + 1}`}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Related Module Link */}
-                  {viewingStory.related && (
-                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">Related {viewingStory.related.type}</p>
-                        <p className="text-[14px] font-extrabold text-gray-900">{viewingStory.related.name}</p>
-                      </div>
-                      <Link href={viewingStory.related.link} onClick={() => setViewingStory(null)}>
-                        <button className="px-5 py-2.5 rounded-lg text-[12px] font-extrabold text-gray-900 bg-white border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5 shadow-sm">
-                          View {viewingStory.related.type} <ArrowRight className="w-3 h-3" />
-                        </button>
-                      </Link>
+                  {/* Related Event */}
+                  {viewingStory.event && (
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">
+                        Related Event
+                      </p>
+
+                      <p className="text-[14px] font-extrabold text-gray-900">
+                        {viewingStory.event.title}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Related Campaign */}
+                  {viewingStory.campaign && (
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                      <p className="text-[10px] font-extrabold text-gray-500 uppercase tracking-widest">
+                        Related Campaign
+                      </p>
+
+                      <p className="text-[14px] font-extrabold text-gray-900">
+                        {viewingStory.campaign.title}
+                      </p>
                     </div>
                   )}
 
@@ -702,8 +753,16 @@ export default function UserGalleryPage() {
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2 }}
                 className="relative z-10 w-full max-w-4xl flex flex-col items-center"
               >
-                <div className="w-full aspect-[4/3] max-h-[70vh] bg-gray-900 rounded-2xl flex items-center justify-center shadow-2xl border border-gray-800">
-                   <ImageIcon className="w-16 h-16 text-gray-700" />
+                <div className="w-full aspect-[4/3] max-h-[70vh] bg-gray-900 rounded-2xl flex items-center justify-center shadow-2xl border border-gray-800 overflow-hidden">
+                  {viewingPhoto.coverImage ? (
+                    <img
+                      src={viewingPhoto.coverImage}
+                      alt={viewingPhoto.title}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <ImageIcon className="w-16 h-16 text-gray-700" />
+                  )}
                 </div>
                 
                 <div className="w-full mt-4 bg-gray-900/60 backdrop-blur-md p-4 rounded-xl border border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm">
@@ -735,12 +794,16 @@ export default function UserGalleryPage() {
                 className="relative z-10 w-full max-w-4xl flex flex-col"
               >
                 <div className="w-full aspect-video bg-gray-900 rounded-2xl flex items-center justify-center shadow-2xl border border-gray-800 overflow-hidden relative">
-                   <Video className="w-16 h-16 text-gray-700" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                     <div className="w-16 h-16 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-900 shadow-xl cursor-pointer hover:scale-105 transition-transform">
-                       <Play size={24} fill="currentColor" className="ml-1" />
-                     </div>
-                   </div>
+                  {viewingVideo.videos.length > 0 ? (
+                    <video
+                      src={viewingVideo.videos[0]}
+                      controls
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <Video className="w-16 h-16 text-gray-700" />
+                  )}
                 </div>
                 
                 <div className="w-full mt-4 bg-gray-900/60 backdrop-blur-md p-4 rounded-xl border border-gray-800 shadow-sm">

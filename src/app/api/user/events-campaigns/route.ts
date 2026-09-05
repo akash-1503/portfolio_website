@@ -227,8 +227,6 @@ export async function GET(req: NextRequest) {
 
      const canRegister =
   (event.status === "UPCOMING" || event.status === "ACTIVE") &&
-  (!event.registrationDeadline ||
-    now <= event.registrationDeadline) &&
   (event.maxParticipants === null ||
     participants < event.maxParticipants) &&
   !isRegistered;
