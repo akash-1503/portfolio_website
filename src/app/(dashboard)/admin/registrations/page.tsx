@@ -151,11 +151,6 @@ export default function AdminRegistrationsPage() {
               Track who is attending your upcoming events and activities.
             </motion.p>
           </div>
-          <motion.div variants={itemVariants}>
-            <button className="px-6 py-3.5 bg-white text-gray-900 border border-gray-300 rounded-full text-[13px] font-extrabold shadow-sm hover:bg-gray-50 hover:shadow transition-all flex items-center gap-2">
-              <Download className="w-4 h-4 text-gray-600" /> Export CSV
-            </button>
-          </motion.div>
         </div>
       </motion.div>
 

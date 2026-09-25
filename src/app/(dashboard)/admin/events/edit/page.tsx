@@ -4,10 +4,13 @@ import { useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { 
-  ArrowLeft, Calendar, MapPin, Clock, 
+import {
+  ArrowLeft, Calendar, MapPin, Clock,
   Users, CheckCircle2, Type, Tag, AlignLeft, UploadCloud, Target, DollarSign
 } from "lucide-react";
+import { CLOUDINARY_FOLDERS } from "../../../../../lib/cloudinary-folders";
+import MediaUploader from "../../../../../components/cloudinary/MediaUploader";
+import type { UploadedMedia } from "../../../../../types/cloudinary";
 
 function EditEventForm() {
   const router = useRouter();
@@ -36,6 +39,7 @@ function EditEventForm() {
     category: "",
     status: "",
     date: "",
+    endDate: "",
     timeStart: "",
     timeEnd: "",
     venue: "",
@@ -44,6 +48,7 @@ function EditEventForm() {
     description: "",
     programId: "",
     coverImage: "",
+    coverImagePublicId: "",
   });
 
   // --- STEP 4 & 5: Fetch Event Details & Dropdowns ---
@@ -71,30 +76,47 @@ function EditEventForm() {
         if (evJson.success) {
           const record = evJson.records.find((r: any) => r.id === id);
           if (record) {
-            
+
             // Format dates locally
             const start = new Date(record.startDate);
-            const end = new Date(record.endDate);
-            
+            const end = record.endDate ? new Date(record.endDate) : null;
+
             const pad = (n: number) => n.toString().padStart(2, "0");
-            const formattedDate = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
-            const formattedTimeStart = `${pad(start.getHours())}:${pad(start.getMinutes())}`;
-            const formattedTimeEnd = `${pad(end.getHours())}:${pad(end.getMinutes())}`;
+
+            const formattedDate =
+              `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+
+            const formattedEndDate = end
+              ? `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`
+              : "";
+
+            const formattedTimeStart =
+              `${pad(start.getHours())}:${pad(start.getMinutes())}`;
+
+            const formattedTimeEnd = end
+              ? `${pad(end.getHours())}:${pad(end.getMinutes())}`
+              : "";
 
             setFormData({
               type: record.type || "Event",
               title: record.title || "",
               category: record.category || "",
               status: record.status || "DRAFT",
+
               date: formattedDate,
+              endDate: formattedEndDate,
+
               timeStart: formattedTimeStart,
               timeEnd: formattedTimeEnd,
+
               venue: record.venue || "",
               volunteersRequired: record.maxVolunteers?.toString() || "",
               goalAmount: record.goalAmount?.toString() || "",
               description: record.description || "",
               programId: record.programId || "",
+
               coverImage: record.coverImage || "",
+              coverImagePublicId: record.coverImagePublicId || "",
             });
           } else {
             setError("Record not found.");
@@ -117,33 +139,67 @@ function EditEventForm() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // --- STEP 7: Image Upload ---
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Simulate Cloudinary Upload
-    const mockCloudinaryUrl = URL.createObjectURL(file);
-    setFormData(prev => ({ ...prev, coverImage: mockCloudinaryUrl }));
-    alert("Image uploaded successfully! (Mocked)");
-  };
-
   // --- STEP 8 & 9 & 10: Save Changes (PATCH) ---
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
-    if (!formData.title || !formData.category || !formData.description) {
-      alert("Please fill all required fields.");
+
+    // ================================
+    // COMMON VALIDATION
+    // ================================
+
+    if (!formData.title.trim()) {
+      alert("Title is required.");
       return;
     }
-    if (formData.type === "Event" && (!formData.venue || !formData.timeStart || !formData.timeEnd)) {
-      alert("Venue and time are required for events.");
+
+    if (!formData.description.trim()) {
+      alert("Description is required.");
       return;
     }
-    if (formData.type === "Campaign" && (!formData.goalAmount || Number(formData.goalAmount) <= 0)) {
-      alert("Valid goal amount is required for campaigns.");
+
+    if (!formData.date) {
+      alert("Start date is required.");
       return;
+    }
+
+    if (!formData.status) {
+      alert("Status is required.");
+      return;
+    }
+
+    // ================================
+    // EVENT VALIDATION
+    // ================================
+
+    if (formData.type === "Event") {
+      if (!formData.category) {
+        alert("Category is required for events.");
+        return;
+      }
+
+      if (!formData.venue.trim()) {
+        alert("Venue is required for events.");
+        return;
+      }
+
+      if (!formData.timeStart || !formData.timeEnd) {
+        alert("Start time and end time are required for events.");
+        return;
+      }
+    }
+
+    // ================================
+    // CAMPAIGN VALIDATION
+    // ================================
+
+    if (formData.type === "Campaign") {
+      if (
+        formData.goalAmount === "" ||
+        Number(formData.goalAmount) <= 0
+      ) {
+        alert("A valid goal amount is required for campaigns.");
+        return;
+      }
     }
 
     setIsSaving(true);
@@ -154,39 +210,72 @@ function EditEventForm() {
       let endDateObj = new Date();
 
       if (formData.type === "Event") {
-        startDateObj = new Date(`${formData.date}T${formData.timeStart}`);
-        endDateObj = new Date(`${formData.date}T${formData.timeEnd}`);
+        startDateObj = new Date(
+          `${formData.date}T${formData.timeStart}`
+        );
+
+        endDateObj = new Date(
+          `${formData.date}T${formData.timeEnd}`
+        );
       } else {
-        startDateObj = new Date(`${formData.date}T00:00`);
-        endDateObj = new Date(`${formData.date}T23:59`);
+        startDateObj = new Date(
+          `${formData.date}T00:00`
+        );
+
+        if (formData.endDate) {
+          endDateObj = new Date(
+            `${formData.endDate}T23:59`
+          );
+        } else {
+          endDateObj = new Date(
+            `${formData.date}T23:59`
+          );
+        }
       }
 
       if (startDateObj >= endDateObj) {
-        alert("Start Time must be before End Time.");
+        alert(
+          formData.type === "Event"
+            ? "Start time must be before end time."
+            : "Campaign start date must be before end date."
+        );
+
         setIsSaving(false);
         return;
       }
 
       const payload = {
-        action: "UPDATE",
-        recordType: formData.type,
-        id: id,
-        title: formData.title,
-        category: formData.category,
-        description: formData.description,
-        status: formData.status,
-        programId: formData.programId || null,
-        coverImage: formData.coverImage || null,
-        startDate: startDateObj.toISOString(),
-        endDate: endDateObj.toISOString(),
-        ...(formData.type === "Event" && {
-          venue: formData.venue,
-          maxVolunteers: formData.volunteersRequired ? parseInt(formData.volunteersRequired) : null,
-        }),
-        ...(formData.type === "Campaign" && {
-          goalAmount: formData.goalAmount ? parseFloat(formData.goalAmount) : null,
-        })
-      };
+  action: "UPDATE",
+  recordType: formData.type,
+  id: id,
+
+  title: formData.title,
+  description: formData.description,
+  status: formData.status,
+
+  programId: formData.programId || null,
+
+  coverImage: formData.coverImage || null,
+  coverImagePublicId: formData.coverImagePublicId || null,
+
+  startDate: startDateObj.toISOString(),
+  endDate: endDateObj.toISOString(),
+
+  ...(formData.type === "Event" && {
+    category: formData.category,
+    venue: formData.venue,
+
+    maxVolunteers: formData.volunteersRequired
+      ? parseInt(formData.volunteersRequired, 10)
+      : null,
+  }),
+
+  ...(formData.type === "Campaign" && {
+    goalAmount: formData.goalAmount
+      ? parseFloat(formData.goalAmount)
+      : null,
+  }),
+};
 
       const res = await fetch("/api/admin/events", {
         method: "PATCH",
@@ -195,7 +284,7 @@ function EditEventForm() {
       });
 
       const data = await res.json();
-      
+
       // --- STEP 13: Success/Error Messages ---
       if (data.success) {
         alert("✓ Event Updated Successfully");
@@ -233,7 +322,7 @@ function EditEventForm() {
 
   return (
     <div className="relative flex flex-col gap-8 min-h-screen pb-10">
-      
+
       {/* --- BACKGROUND MOTIFS --- */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-green-400/20 rounded-full blur-[120px]" />
@@ -246,14 +335,14 @@ function EditEventForm() {
           <Link href="/admin/events" className="inline-flex items-center gap-2 text-[12px] font-extrabold text-gray-400 hover:text-[#16a34a] transition-colors mb-2 uppercase tracking-widest">
             <ArrowLeft className="w-4 h-4" /> Back to Events
           </Link>
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-3xl font-extrabold text-gray-900 tracking-tight"
           >
             Edit {formData.type}
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -265,7 +354,7 @@ function EditEventForm() {
       </div>
 
       {/* --- EDIT FORM --- */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -274,10 +363,10 @@ function EditEventForm() {
         {/* STEP 12: Disable While Saving */}
         <fieldset disabled={isSaving} className="flex flex-col w-full h-full">
           <form onSubmit={handleSave} className="flex flex-col w-full h-full">
-            
+
             <div className="p-8 sm:p-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
+
                 {/* Image Upload Area */}
                 <div className={`col-span-1 md:col-span-2 border-2 border-dashed rounded-[2rem] p-8 flex flex-col items-center justify-center text-center transition-colors relative group overflow-hidden ${formData.coverImage ? 'border-[#16a34a] bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-green-50/50'}`}>
                   {formData.coverImage && (
@@ -290,7 +379,27 @@ function EditEventForm() {
                   </div>
                   <h4 className="relative z-10 text-[13px] font-extrabold text-gray-900">Change Cover Image</h4>
                   <p className="relative z-10 text-[11px] font-bold text-gray-500 mb-2">Recommended size: 1200x600px</p>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
+                  <MediaUploader
+                    accept="image"
+                    multiple={false}
+                    folder={
+                      formData.type === "Event"
+                        ? CLOUDINARY_FOLDERS.events.covers
+                        : CLOUDINARY_FOLDERS.campaigns.covers
+                    }
+                    buttonText={
+                      formData.coverImage
+                        ? `Replace ${formData.type} Cover`
+                        : `Upload ${formData.type} Cover`
+                    }
+                    onUpload={(media: UploadedMedia) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        coverImage: media.url,
+                        coverImagePublicId: media.publicId,
+                      }));
+                    }}
+                  />
                 </div>
 
                 {/* Type Selection (Read-Only Usually, but kept as disabled input to show context) */}
@@ -302,15 +411,28 @@ function EditEventForm() {
                 </div>
 
                 {/* Category Selection */}
-                <div className="space-y-2">
-                  <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                    <Tag className="w-3.5 h-3.5 text-[#f97316]" /> Category *
-                  </label>
-                  <select name="category" value={formData.category} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none" required>
-                    {dropdownData.categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                </div>
+                {formData.type === "Event" && (
+  <div className="space-y-2">
+    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+      <Tag className="w-3.5 h-3.5 text-[#f97316]" />
+      Category *
+    </label>
 
+    <select
+      name="category"
+      value={formData.category}
+      onChange={handleChange}
+      className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none"
+      required
+    >
+      {dropdownData.categories.map((cat) => (
+        <option key={cat} value={cat}>
+          {cat}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
                 {/* Title */}
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -326,6 +448,23 @@ function EditEventForm() {
                   </label>
                   <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-700" required />
                 </div>
+                {formData.type === "Campaign" && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5 text-[#f97316]" />
+                      End Date
+                    </label>
+
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      min={formData.date || undefined}
+                      className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-700"
+                    />
+                  </div>
+                )}
 
                 {/* Program Link */}
                 <div className="space-y-2">
@@ -339,7 +478,37 @@ function EditEventForm() {
                     ))}
                   </select>
                 </div>
+                {formData.coverImage && (
+                  <div className="relative overflow-hidden rounded-[1.5rem] border border-gray-200">
+                    <img
+                      src={formData.coverImage}
+                      alt={`${formData.type} cover`}
+                      className="w-full h-56 object-cover"
+                    />
 
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          coverImage: "",
+                          coverImagePublicId: "",
+                        }))
+                      }
+                      className="absolute top-3 right-3 px-4 py-2 rounded-full bg-red-500 text-white text-[11px] font-extrabold shadow-lg hover:bg-red-600 transition-colors"
+                    >
+                      Remove
+                    </button>
+
+                    <div className="absolute bottom-4 left-4">
+                      <span className="text-white text-[11px] font-extrabold uppercase tracking-widest">
+                        Cover Preview
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {/* --- STEP 11: Event Specific Fields --- */}
                 {formData.type === "Event" && (
                   <>
@@ -363,7 +532,7 @@ function EditEventForm() {
                       </label>
                       <input type="time" name="timeEnd" value={formData.timeEnd} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-purple-500/20 outline-none text-gray-700" required />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                         <Users className="w-3.5 h-3.5 text-[#16a34a]" /> Volunteers Required

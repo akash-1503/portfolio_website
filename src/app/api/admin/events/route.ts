@@ -270,45 +270,177 @@ export async function PATCH(req: Request) {
 
     // --- HANDLE ACTIONS ---
     switch (action) {
-      case "UPDATE": {
-        // Safe mapping of fields to prevent unintended data overwrites
-        const updateFields: any = {};
-        
-        if (updateData.title !== undefined) updateFields.title = updateData.title;
-        if (updateData.description !== undefined) updateFields.description = updateData.description;
-        if (updateData.category !== undefined) updateFields.category = updateData.category;
-        if (updateData.status !== undefined)
+     case "UPDATE": {
+  // Safe mapping of fields to prevent unintended data overwrites
+  const updateFields: any = {};
+
+  // ========================================
+  // COMMON FIELDS
+  // These fields exist for both Event and Campaign
+  // ========================================
+
+  if (updateData.title !== undefined) {
+    updateFields.title = updateData.title;
+  }
+
+  if (updateData.description !== undefined) {
+    updateFields.description = updateData.description;
+  }
+
+  if (updateData.status !== undefined) {
     updateFields.status = updateData.status;
-        if (updateData.eventType !== undefined) updateFields.eventType = updateData.eventType;
-        if (updateData.summary !== undefined) updateFields.summary = updateData.summary;
-        if (updateData.venue !== undefined) updateFields.venue = updateData.venue;
-        if (updateData.address !== undefined) updateFields.address = updateData.address;
-        if (updateData.city !== undefined) updateFields.city = updateData.city;
-        if (updateData.state !== undefined) updateFields.state = updateData.state;
-        if (updateData.country !== undefined) updateFields.country = updateData.country;
-        if (updateData.postalCode !== undefined) updateFields.postalCode = updateData.postalCode;
-        if (updateData.googleMapUrl !== undefined) updateFields.googleMapUrl = updateData.googleMapUrl;
-        if (updateData.timezone !== undefined) updateFields.timezone = updateData.timezone;
-        if (updateData.coverImage !== undefined) updateFields.coverImage = updateData.coverImage;
-        
-        // Safely parse numbers and dates
-        if (updateData.startDate) updateFields.startDate = new Date(updateData.startDate);
-        if (updateData.endDate) updateFields.endDate = new Date(updateData.endDate);
-        if (updateData.registrationDeadline) updateFields.registrationDeadline = new Date(updateData.registrationDeadline);
-        
-        if (updateData.maxParticipants !== undefined) updateFields.maxParticipants = parseInt(updateData.maxParticipants);
-        if (updateData.maxVolunteers !== undefined) updateFields.maxVolunteers = parseInt(updateData.maxVolunteers);
-        if (updateData.minVolunteers !== undefined) updateFields.minVolunteers = parseInt(updateData.minVolunteers);
-        if (updateData.maxGuests !== undefined) updateFields.maxGuests = parseInt(updateData.maxGuests);
-        if (updateData.goalAmount !== undefined) updateFields.goalAmount = parseFloat(updateData.goalAmount);
+  }
 
-        const updatedRecord = await (model as any).update({ 
-          where: { id }, 
-          data: updateFields 
-        });
+  if (updateData.programId !== undefined) {
+    updateFields.programId = updateData.programId || null;
+  }
 
-        return NextResponse.json({ success: true, message: `${recordType} updated successfully`, data: updatedRecord });
-      }
+  if (updateData.coverImage !== undefined) {
+    updateFields.coverImage = updateData.coverImage;
+  }
+
+  // Cloudinary public ID
+  if (updateData.coverImagePublicId !== undefined) {
+    updateFields.coverImagePublicId =
+      updateData.coverImagePublicId || null;
+  }
+
+  // ========================================
+  // DATE FIELDS
+  // These exist for Event and Campaign
+  // ========================================
+
+  if (updateData.startDate !== undefined) {
+    updateFields.startDate = new Date(updateData.startDate);
+  }
+
+  if (updateData.endDate !== undefined) {
+    updateFields.endDate = updateData.endDate
+      ? new Date(updateData.endDate)
+      : null;
+  }
+
+  // ========================================
+  // EVENT-ONLY FIELDS
+  // ========================================
+
+  if (recordType === "Event") {
+
+    if (updateData.category !== undefined) {
+      updateFields.category = updateData.category;
+    }
+
+    if (updateData.eventType !== undefined) {
+      updateFields.eventType = updateData.eventType;
+    }
+
+    if (updateData.summary !== undefined) {
+      updateFields.summary = updateData.summary;
+    }
+
+    if (updateData.venue !== undefined) {
+      updateFields.venue = updateData.venue;
+    }
+
+    if (updateData.address !== undefined) {
+      updateFields.address = updateData.address;
+    }
+
+    if (updateData.city !== undefined) {
+      updateFields.city = updateData.city;
+    }
+
+    if (updateData.state !== undefined) {
+      updateFields.state = updateData.state;
+    }
+
+    if (updateData.country !== undefined) {
+      updateFields.country = updateData.country;
+    }
+
+    if (updateData.postalCode !== undefined) {
+      updateFields.postalCode = updateData.postalCode;
+    }
+
+    if (updateData.googleMapUrl !== undefined) {
+      updateFields.googleMapUrl = updateData.googleMapUrl;
+    }
+
+    if (updateData.timezone !== undefined) {
+      updateFields.timezone = updateData.timezone;
+    }
+
+    // Event numeric fields
+    if (updateData.maxParticipants !== undefined) {
+      updateFields.maxParticipants =
+        updateData.maxParticipants === null ||
+        updateData.maxParticipants === ""
+          ? null
+          : parseInt(updateData.maxParticipants, 10);
+    }
+
+    if (updateData.maxVolunteers !== undefined) {
+      updateFields.maxVolunteers =
+        updateData.maxVolunteers === null ||
+        updateData.maxVolunteers === ""
+          ? null
+          : parseInt(updateData.maxVolunteers, 10);
+    }
+
+    if (updateData.minVolunteers !== undefined) {
+      updateFields.minVolunteers =
+        updateData.minVolunteers === null ||
+        updateData.minVolunteers === ""
+          ? null
+          : parseInt(updateData.minVolunteers, 10);
+    }
+
+    if (updateData.maxGuests !== undefined) {
+      updateFields.maxGuests =
+        updateData.maxGuests === null ||
+        updateData.maxGuests === ""
+          ? null
+          : parseInt(updateData.maxGuests, 10);
+    }
+
+    if (updateData.registrationDeadline !== undefined) {
+      updateFields.registrationDeadline =
+        updateData.registrationDeadline
+          ? new Date(updateData.registrationDeadline)
+          : null;
+    }
+  }
+
+  // ========================================
+  // CAMPAIGN-ONLY FIELDS
+  // ========================================
+
+  if (recordType === "Campaign") {
+
+    if (updateData.goalAmount !== undefined) {
+      updateFields.goalAmount =
+        updateData.goalAmount === null ||
+        updateData.goalAmount === ""
+          ? null
+          : parseFloat(updateData.goalAmount);
+    }
+  }
+
+  // ========================================
+  // DATABASE UPDATE
+  // ========================================
+
+  const updatedRecord = await (model as any).update({
+    where: { id },
+    data: updateFields,
+  });
+
+  return NextResponse.json({
+    success: true,
+    message: `${recordType} updated successfully`,
+    data: updatedRecord,
+  });
+}
 
       case "CHANGE_STATUS":
         if (!updateData.status) {

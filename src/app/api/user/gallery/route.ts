@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   GalleryCategory,
+  GalleryMediaType,
   GalleryType,
   Role,
 } from "@prisma/client";
@@ -8,61 +9,227 @@ import {
 import { prisma } from "../../../../lib/prisma";
 import { verifyToken } from "../../../../lib/jwt";
 
-// ============================================================================
-// TYPES
-// ============================================================================
+/* ============================================================
+   TYPES
+============================================================ */
 
-type AuthResult =
-  | {
-      success: true;
-      user: {
-        id: string;
-        name: string | null;
-        email: string;
-        ngoId: string;
-      };
-    }
-  | {
-      success: false;
-      error: string;
-      status: number;
+type UserGalleryType =
+  | "Story"
+  | "Photo"
+  | "Video"
+  | "Impact";
+
+type GalleryWhere = {
+  ngoId: string;
+  isDeleted: boolean;
+  isPublished: boolean;
+
+  OR?: Array<{
+    title?: {
+      contains: string;
+      mode: "insensitive";
     };
+    description?: {
+      contains: string;
+      mode: "insensitive";
+    };
+    location?: {
+      contains: string;
+      mode: "insensitive";
+    };
+  }>;
 
-// ============================================================================
-// AUTHENTICATION
-// ============================================================================
+  category?: GalleryCategory;
+  type?: GalleryType;
+  isFeatured?: boolean;
+};
 
-async function authenticateUser(): Promise<AuthResult> {
+/* ============================================================
+   HELPERS
+============================================================ */
+
+/**
+ * Convert database GalleryType into the exact values
+ * expected by the User Gallery page.
+ *
+ * User Gallery expects:
+ * Story | Photo | Video | Impact
+ */
+function mapType(
+  type: GalleryType,
+  eventId: string | null,
+  campaignId: string | null
+): "Story" | "Photo" | "Video" | "Impact" {
+  switch (type) {
+    case GalleryType.Photo:
+      return "Photo";
+
+    case GalleryType.Video:
+      return "Video";
+
+    case GalleryType.Impact:
+      return "Impact";
+
+    case GalleryType.Story:
+    default:
+      return "Story";
+  }
+}
+
+/**
+ * Convert Prisma GalleryCategory into the category
+ * strings used by the frontend.
+ */
+function mapCategory(category: GalleryCategory): string {
+  switch (category) {
+    case GalleryCategory.Education:
+      return "EDUCATION";
+
+    case GalleryCategory.Environment:
+      return "ENVIRONMENT";
+
+    case GalleryCategory.Health:
+      return "HEALTH";
+
+    case GalleryCategory.Emergency:
+      return "EMERGENCY";
+
+    default:
+      return String(category);
+  }
+}
+
+/**
+ * Convert query-string type into Prisma GalleryType.
+ */
+function mapQueryType(
+  type: string
+): GalleryType | undefined {
+  switch (type.toLowerCase()) {
+    case "photo":
+    case "photo story":
+      return GalleryType.Photo;
+
+    case "video":
+    case "video story":
+      return GalleryType.Video;
+
+    case "impact":
+    case "campaign":
+    case "campaign story":
+      return GalleryType.Impact;
+
+    case "story":
+    case "event":
+    case "event story":
+      return GalleryType.Story;
+
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Convert query-string category into Prisma GalleryCategory.
+ */
+function mapQueryCategory(
+  category: string
+): GalleryCategory | undefined {
+  switch (category.toLowerCase()) {
+    case "education":
+      return GalleryCategory.Education;
+
+    case "environment":
+      return GalleryCategory.Environment;
+
+    case "health":
+      return GalleryCategory.Health;
+
+    case "emergency":
+      return GalleryCategory.Emergency;
+
+    default:
+      return undefined;
+  }
+}
+
+/* ============================================================
+   GET
+   GET /api/user/gallery
+
+   IMPORTANT:
+   Only published gallery posts are returned.
+
+   Conditions:
+   - Logged-in user
+   - User role must be USER
+   - User account must not be deleted
+   - User must belong to an NGO
+   - Gallery must belong to that same NGO
+   - Gallery must not be deleted
+   - Gallery must be published
+============================================================ */
+
+export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await (await import("next/headers")).cookies();
+    /* ========================================================
+       1. GET JWT COOKIE
+    ======================================================== */
 
-    const token = cookieStore.get("token")?.value;
+    const token =
+      req.cookies.get("token")?.value ?? "";
 
     if (!token) {
-      return {
-        success: false,
-        error: "Authentication required.",
-        status: 401,
-      };
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized.",
+        },
+        { status: 401 }
+      );
     }
+
+    /* ========================================================
+       2. VERIFY JWT
+    ======================================================== */
 
     const payload = await verifyToken(token);
 
     if (!payload) {
-      return {
-        success: false,
-        error: "Invalid or expired authentication token.",
-        status: 401,
-      };
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Unauthorized.",
+        },
+        { status: 401 }
+      );
     }
 
+    /* ========================================================
+       3. USER ROLE CHECK
+    ======================================================== */
+
     if (payload.role !== Role.USER) {
-      return {
-        success: false,
-        error: "Unauthorized. User access required.",
-        status: 403,
-      };
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Access denied. User access required.",
+        },
+        { status: 403 }
+      );
     }
+
+    /* ========================================================
+       4. LOAD USER FROM DATABASE
+
+       We do NOT trust only the JWT ngoId.
+
+       The current database record is loaded again so that:
+       - deleted users cannot access gallery
+       - NGO association is current
+       - role is checked against database
+    ======================================================== */
 
     const user = await prisma.user.findFirst({
       where: {
@@ -70,6 +237,7 @@ async function authenticateUser(): Promise<AuthResult> {
         role: Role.USER,
         isDeleted: false,
       },
+
       select: {
         id: true,
         name: true,
@@ -79,268 +247,79 @@ async function authenticateUser(): Promise<AuthResult> {
     });
 
     if (!user) {
-      return {
-        success: false,
-        error: "User account not found.",
-        status: 401,
-      };
-    }
-
-    if (!user.ngoId) {
-      return {
-        success: false,
-        error: "User is not associated with an NGO.",
-        status: 400,
-      };
-    }
-
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        ngoId: user.ngoId,
-      },
-    };
-  } catch (error) {
-    console.error("User gallery authentication error:", error);
-
-    return {
-      success: false,
-      error: "Authentication failed.",
-      status: 401,
-    };
-  }
-}
-
-// ============================================================================
-// CATEGORY HELPERS
-// ============================================================================
-
-function categoryToFrontend(category: GalleryCategory): string {
-  return String(category)
-    .toLowerCase()
-    .replace(/^\w/, (char) => char.toUpperCase());
-}
-
-// ============================================================================
-// TYPE HELPERS
-// ============================================================================
-
-/**
- * The database uses:
- *
- * Story  -> Event Story when eventId exists
- * Impact -> Campaign Story when campaignId exists
- *
- * The User Gallery UI currently understands:
- *
- * Story
- * Photo
- * Video
- * Impact
- *
- * We keep the API type within those four values.
- */
-function typeToFrontend(
-  type: GalleryType,
-  eventId: string | null,
-  campaignId: string | null
-): "Story" | "Photo" | "Video" | "Impact" {
-  if (type === GalleryType.Photo) {
-    return "Photo";
-  }
-
-  if (type === GalleryType.Video) {
-    return "Video";
-  }
-
-  if (type === GalleryType.Impact) {
-    return "Impact";
-  }
-
-  return "Story";
-}
-
-// ============================================================================
-// DATE FORMATTER
-// ============================================================================
-
-function formatDate(date: Date | null | undefined): string {
-  if (!date) {
-    return "";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-}
-
-// ============================================================================
-// URL / MEDIA HELPERS
-// ============================================================================
-
-function getCoverImage(
-  thumbnailUrl: string | null,
-  media: Array<{
-    mediaUrl: string;
-    mediaType: "IMAGE" | "VIDEO";
-  }>
-): string | null {
-  if (thumbnailUrl) {
-    return thumbnailUrl;
-  }
-
-  const firstImage = media.find(
-    (item) => item.mediaType === "IMAGE"
-  );
-
-  return firstImage?.mediaUrl ?? null;
-}
-
-// ============================================================================
-// GET USER GALLERY
-// ============================================================================
-
-export async function GET(req: NextRequest) {
-  try {
-    // ------------------------------------------------------------------------
-    // 1. Authenticate user
-    // ------------------------------------------------------------------------
-
-    const auth = await authenticateUser();
-
-    if (!auth.success) {
       return NextResponse.json(
         {
           success: false,
-          error: auth.error,
+          message: "User account not found.",
         },
-        {
-          status: auth.status,
-        }
+        { status: 404 }
       );
     }
 
-    const user = auth.user;
+    /* ========================================================
+       5. NGO CHECK
+    ======================================================== */
 
-    // ------------------------------------------------------------------------
-    // 2. Read query parameters
-    // ------------------------------------------------------------------------
+    if (!user.ngoId) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "User is not associated with an NGO.",
+        },
+        { status: 403 }
+      );
+    }
 
-    const { searchParams } = new URL(req.url);
+    /* ========================================================
+       6. QUERY PARAMETERS
+    ======================================================== */
 
-    const categoryParam = searchParams.get("category");
-    const typeParam = searchParams.get("type");
-    const featuredParam = searchParams.get("featured");
-    const searchParam = searchParams.get("search");
+    const searchParams =
+      req.nextUrl.searchParams;
 
-    // ------------------------------------------------------------------------
-    // 3. Build WHERE condition
-    // ------------------------------------------------------------------------
+    const category =
+      searchParams.get("category")?.trim() || "";
 
-    const where: any = {
+    const type =
+      searchParams.get("type")?.trim() || "";
+
+    const featured =
+      searchParams.get("featured");
+
+    const search =
+      searchParams.get("search")?.trim() || "";
+
+    /* ========================================================
+       7. BASE WHERE CONDITION
+
+       THIS IS THE MOST IMPORTANT PART.
+
+       User Gallery ONLY receives:
+
+       isDeleted = false
+       isPublished = true
+
+       Therefore an Admin-created draft will NOT appear
+       in the User Gallery.
+
+       Once Admin publishes it:
+       isPublished = true
+
+       it automatically appears here.
+    ======================================================== */
+
+    const where: GalleryWhere = {
       ngoId: user.ngoId,
-
-      // Deleted gallery posts must never be visible to users.
       isDeleted: false,
-
-      // Users can only see published gallery posts.
       isPublished: true,
     };
 
-    // ------------------------------------------------------------------------
-    // 4. Category filter
-    // ------------------------------------------------------------------------
+    /* ========================================================
+       8. SEARCH
+    ======================================================== */
 
-    if (categoryParam && categoryParam !== "All") {
-      const normalizedCategory =
-        categoryParam.trim().toLowerCase();
-
-      const categoryMap: Record<string, GalleryCategory> = {
-        education: GalleryCategory.Education,
-        environment: GalleryCategory.Environment,
-        health: GalleryCategory.Health,
-        emergency: GalleryCategory.Emergency,
-      };
-
-      const prismaCategory =
-        categoryMap[normalizedCategory];
-
-      if (prismaCategory) {
-        where.category = prismaCategory;
-      }
-    }
-
-    // ------------------------------------------------------------------------
-    // 5. Type filter
-    // ------------------------------------------------------------------------
-
-    if (typeParam && typeParam !== "All") {
-      switch (typeParam.trim().toLowerCase()) {
-        case "photo":
-        case "photos":
-          where.type = GalleryType.Photo;
-          break;
-
-        case "video":
-        case "videos":
-          where.type = GalleryType.Video;
-          break;
-
-        case "story":
-        case "stories":
-        case "event story":
-          where.type = GalleryType.Story;
-
-          // Event Story specifically means Story connected to an event.
-          if (
-            typeParam.trim().toLowerCase() === "event story"
-          ) {
-            where.eventId = {
-              not: null,
-            };
-          }
-
-          break;
-
-        case "impact":
-        case "impact story":
-        case "campaign story":
-          where.type = GalleryType.Impact;
-
-          // Campaign Story specifically means Impact connected
-          // to a campaign.
-          if (
-            typeParam.trim().toLowerCase() === "campaign story"
-          ) {
-            where.campaignId = {
-              not: null,
-            };
-          }
-
-          break;
-      }
-    }
-
-    // ------------------------------------------------------------------------
-    // 6. Featured filter
-    // ------------------------------------------------------------------------
-
-    if (featuredParam === "true") {
-      where.isFeatured = true;
-    }
-
-    // ------------------------------------------------------------------------
-    // 7. Search
-    // ------------------------------------------------------------------------
-
-    if (searchParam?.trim()) {
-      const search = searchParam.trim();
-
+    if (search) {
       where.OR = [
         {
           title: {
@@ -363,358 +342,397 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    // ------------------------------------------------------------------------
-    // 8. Fetch published gallery posts
-    // ------------------------------------------------------------------------
+    /* ========================================================
+       9. CATEGORY FILTER
+    ======================================================== */
 
-    const posts = await prisma.galleryPost.findMany({
-      where,
+    if (category) {
+      const prismaCategory =
+        mapQueryCategory(category);
 
-      include: {
-        event: true,
-        campaign: true,
+      if (prismaCategory) {
+        where.category = prismaCategory;
+      }
+    }
 
-        media: {
-          orderBy: {
-            sortOrder: "asc",
+    /* ========================================================
+       10. FEATURED FILTER
+    ======================================================== */
+
+    if (featured === "true") {
+      where.isFeatured = true;
+    }
+
+    /* ========================================================
+       11. TYPE FILTER
+    ======================================================== */
+
+    if (type) {
+      const prismaType =
+        mapQueryType(type);
+
+      if (prismaType) {
+        where.type = prismaType;
+      }
+    }
+
+    /* ========================================================
+       12. FETCH PUBLISHED GALLERY POSTS
+    ======================================================== */
+
+    const posts =
+      await prisma.galleryPost.findMany({
+        where,
+
+        /*
+         * Featured content first.
+         * Then newest published content.
+         */
+        orderBy: [
+          {
+            isFeatured: "desc",
+          },
+          {
+            publishedAt: "desc",
+          },
+          {
+            createdAt: "desc",
+          },
+        ],
+
+        select: {
+          id: true,
+          title: true,
+          description: true,
+
+          type: true,
+          category: true,
+
+          thumbnailUrl: true,
+
+          location: true,
+
+          isFeatured: true,
+          isPublished: true,
+          publishedAt: true,
+
+          eventId: true,
+          campaignId: true,
+
+          createdAt: true,
+          updatedAt: true,
+
+          /* ================================================
+             EVENT
+          ================================================ */
+
+          event: {
+            select: {
+              id: true,
+              title: true,
+              startDate: true,
+              endDate: true,
+              venue: true,
+              city: true,
+            },
+          },
+
+          /* ================================================
+             CAMPAIGN
+          ================================================ */
+
+          campaign: {
+            select: {
+              id: true,
+              title: true,
+              startDate: true,
+              endDate: true,
+            },
+          },
+
+          /* ================================================
+             MEDIA
+          ================================================ */
+
+          media: {
+            orderBy: {
+              sortOrder: "asc",
+            },
+
+            select: {
+              id: true,
+              mediaUrl: true,
+              thumbnailUrl: true,
+              mediaType: true,
+              sortOrder: true,
+              createdAt: true,
+            },
           },
         },
-      },
+      });
 
-      orderBy: [
-        {
-          publishedAt: "desc",
-        },
-        {
-          createdAt: "desc",
-        },
-      ],
-    });
-
-    // ------------------------------------------------------------------------
-    // 9. Format gallery records for User Gallery page
-    // ------------------------------------------------------------------------
+    /* ========================================================
+       13. FORMAT FOR USER GALLERY FRONTEND
+    ======================================================== */
 
     const gallery = posts.map((post) => {
-      const frontendType = typeToFrontend(
-        post.type,
-        post.eventId,
-        post.campaignId
-      );
+  const imageMedia = post.media.filter(
+    (media) =>
+      media.mediaType === GalleryMediaType.IMAGE
+  );
 
-      // ----------------------------------------------------------------------
-      // Media
-      // ----------------------------------------------------------------------
+  const videoMedia = post.media.filter(
+    (media) =>
+      media.mediaType === GalleryMediaType.VIDEO
+  );
 
-      const images = post.media
-        .filter((media) => media.mediaType === "IMAGE")
-        .map((media) => media.mediaUrl);
+  // Main image URLs
+  const images = imageMedia
+    .map((media) => media.mediaUrl)
+    .filter(Boolean);
 
-      const videos = post.media
-        .filter((media) => media.mediaType === "VIDEO")
-        .map((media) => media.mediaUrl);
+  // Main video URLs
+  const videos = videoMedia
+    .map((media) => media.mediaUrl)
+    .filter(Boolean);
 
-      // ----------------------------------------------------------------------
-      // Cover image
-      // ----------------------------------------------------------------------
+  // Determine the best cover image.
+  //
+  // Priority:
+  // 1. GalleryPost thumbnailUrl
+  // 2. First image media URL
+  // 3. First image media thumbnail
+  // 4. First video thumbnail
+  const coverImage =
+    post.thumbnailUrl ||
+    imageMedia[0]?.mediaUrl ||
+    imageMedia[0]?.thumbnailUrl ||
+    videoMedia[0]?.thumbnailUrl ||
+    null;
 
-      const coverImage = getCoverImage(
-        post.thumbnailUrl,
-        post.media
-      );
+  // Thumbnail used by video/photo cards
+  const thumbnailUrl =
+    post.thumbnailUrl ||
+    imageMedia[0]?.thumbnailUrl ||
+    videoMedia[0]?.thumbnailUrl ||
+    null;
+return {
+  id: post.id,
+  title: post.title,
+  description: post.description,
 
-      // ----------------------------------------------------------------------
-      // Location
-      // ----------------------------------------------------------------------
+  shortDesc: post.description,
+  fullDesc: post.description,
 
-      let location = post.location ?? "";
+  type: mapType(
+    post.type,
+    post.eventId,
+    post.campaignId
+  ),
 
-      /*
-       * Event has known venue/city fields in your project.
-       *
-       * If GalleryPost.location is empty, use Event location.
-       */
-      if (!location && post.event) {
-        const eventLocation = [
-          post.event.venue,
-          post.event.city,
-        ]
-          .filter(Boolean)
-          .join(", ");
+  category: mapCategory(post.category),
 
-        location = eventLocation;
-      }
+  coverImage,
+  thumbnailUrl,
 
-      // ----------------------------------------------------------------------
-      // Related Event / Campaign
-      // ----------------------------------------------------------------------
+  images,
+  videos,
 
-      let related:
-        | {
-            type: "Event" | "Campaign";
-            name: string;
-            link: string;
-          }
-        | undefined;
+  media: post.media.map((media) => ({
+    id: media.id,
+    mediaUrl: media.mediaUrl,
+    thumbnailUrl: media.thumbnailUrl,
+    mediaType: media.mediaType,
+    sortOrder: media.sortOrder,
+    createdAt: media.createdAt.toISOString(),
+  })),
 
-      /*
-       * Event relationship
-       *
-       * We use the event name/title that exists on the Event record.
-       *
-       * The `as any` here is intentional because the exact Event naming
-       * property can differ depending on your Prisma Event model.
-       */
-      if (post.eventId && post.event) {
-        const eventRecord = post.event as any;
+  mediaCount: post.media.length,
 
-        const eventName =
-          eventRecord.title ??
-          eventRecord.name ??
-          "Related Event";
+  location:
+    post.location ||
+    post.event?.venue ||
+    post.event?.city ||
+    "Location not specified",
 
-        related = {
-          type: "Event",
-          name: eventName,
-          link: "/user/eventcamp",
-        };
-      }
+  date: new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+}).format(
+  post.publishedAt ??
+  post.createdAt
+),
 
-      /*
-       * Campaign relationship
-       *
-       * If a campaign exists, use its available title/name.
-       */
-      if (post.campaignId && post.campaign) {
-        const campaignRecord = post.campaign as any;
+  isFeatured: post.isFeatured,
+  isPublished: post.isPublished,
 
-        const campaignName =
-          campaignRecord.title ??
-          campaignRecord.name ??
-          "Related Campaign";
+  eventId: post.eventId,
+  campaignId: post.campaignId,
 
-        related = {
-          type: "Campaign",
-          name: campaignName,
-          link: "/user/eventcamp",
-        };
-      }
+  event: post.event,
+  campaign: post.campaign,
 
-      // ----------------------------------------------------------------------
-      // Description
-      // ----------------------------------------------------------------------
+  createdAt: post.createdAt.toISOString(),
+  updatedAt: post.updatedAt.toISOString(),
+};
+});
+    const [
+      totalPosts,
+      featuredPosts,
+      imageCount,
+      videoCount,
+    ] = await Promise.all([
+      /* ================================================
+         TOTAL PUBLISHED POSTS
+      ================================================ */
 
-      const fullDesc = post.description ?? "";
+      prisma.galleryPost.count({
+        where: {
+          ngoId: user.ngoId,
 
-      /*
-       * Your current UI uses both shortDesc and fullDesc.
-       *
-       * GalleryPost has one description field, so we expose the same
-       * description as both values.
-       *
-       * The frontend already uses line-clamping where needed.
-       */
-      const shortDesc = fullDesc;
+          isDeleted: false,
 
-      // ----------------------------------------------------------------------
-      // Return record
-      // ----------------------------------------------------------------------
+          isPublished: true,
+        },
+      }),
 
-      return {
-        id: post.id,
+      /* ================================================
+         TOTAL FEATURED PUBLISHED POSTS
+      ================================================ */
 
-        type: frontendType,
+      prisma.galleryPost.count({
+        where: {
+          ngoId: user.ngoId,
 
-        category: categoryToFrontend(post.category),
+          isDeleted: false,
 
-        isFeatured: post.isFeatured,
+          isPublished: true,
 
-        title: post.title,
+          isFeatured: true,
+        },
+      }),
 
-        date: formatDate(
-          post.publishedAt ?? post.createdAt
-        ),
+      /* ================================================
+         TOTAL PUBLISHED IMAGES
+      ================================================ */
 
-        location,
+      prisma.galleryMedia.count({
+        where: {
+          galleryPost: {
+            ngoId: user.ngoId,
 
-        shortDesc,
+            isDeleted: false,
 
-        fullDesc,
+            isPublished: true,
+          },
 
-        coverImage,
+          mediaType:
+            GalleryMediaType.IMAGE,
+        },
+      }),
 
-        images,
+      /* ================================================
+         TOTAL PUBLISHED VIDEOS
+      ================================================ */
 
-        /*
-         * GalleryPost does not currently have a duration field.
-         * Therefore we do not invent one.
-         */
-        duration: undefined,
+      prisma.galleryMedia.count({
+        where: {
+          galleryPost: {
+            ngoId: user.ngoId,
 
-        /*
-         * GalleryPost does not currently have a stats field.
-         * Therefore we do not invent impact statistics.
-         */
-        stats: undefined,
+            isDeleted: false,
 
-        related,
+            isPublished: true,
+          },
 
-        // Useful extra information for future UI requirements.
-        eventId: post.eventId,
+          mediaType:
+            GalleryMediaType.VIDEO,
+        },
+      }),
+    ]);
 
-        campaignId: post.campaignId,
-
-        media: post.media.map((media) => ({
-          id: media.id,
-          mediaUrl: media.mediaUrl,
-          thumbnailUrl: media.thumbnailUrl,
-          mediaType: media.mediaType,
-          sortOrder: media.sortOrder,
-        })),
-
-        videos,
-
-        mediaCount: post.media.length,
-
-        createdAt: post.createdAt.toISOString(),
-
-        updatedAt: post.updatedAt.toISOString(),
-      };
-    });
-
-    // ------------------------------------------------------------------------
-    // 10. Statistics
-    // ------------------------------------------------------------------------
-
-    const totalPosts = gallery.length;
-
-    const featuredPosts = gallery.filter(
-      (item) => item.isFeatured
-    ).length;
-
-    const totalPhotos = gallery.reduce(
-      (total, item) => total + item.images.length,
-      0
-    );
-
-    const totalVideos = gallery.reduce(
-      (total, item) => total + item.videos.length,
-      0
-    );
-
-    // ------------------------------------------------------------------------
-    // 11. Response
-    // ------------------------------------------------------------------------
+    /* ========================================================
+       15. RESPONSE
+    ======================================================== */
 
     return NextResponse.json(
       {
         success: true,
 
-        message: "Gallery loaded successfully.",
+        message:
+          "Gallery loaded successfully.",
 
         data: {
+          /* ==============================================
+             USER
+          ============================================== */
+
           user: {
-            id: user.id,
-            name: user.name,
-            email: user.email,
+            id:
+              user.id,
+
+            name:
+              user.name,
+
+            email:
+              user.email,
           },
+
+          /* ==============================================
+             GALLERY
+
+             ONLY PUBLISHED ADMIN CONTENT
+          ============================================== */
 
           gallery,
 
+          /* ==============================================
+             STATISTICS
+          ============================================== */
+
           statistics: {
             totalPosts,
+
             featuredPosts,
-            totalPhotos,
-            totalVideos,
-            totalMedia: totalPhotos + totalVideos,
+
+            totalPhotos:
+              imageCount,
+
+            totalVideos:
+              videoCount,
+
+            totalMedia:
+              imageCount +
+              videoCount,
           },
         },
       },
+
       {
         status: 200,
       }
     );
   } catch (error) {
-    console.error("User gallery GET error:", error);
+    /* ========================================================
+       ERROR HANDLING
+    ======================================================== */
+
+    console.error(
+      "GET /api/user/gallery ERROR:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        error: "Server error while loading gallery.",
-        details:
-          process.env.NODE_ENV === "development"
-            ? error instanceof Error
-              ? error.message
-              : String(error)
-            : undefined,
+
+        message:
+          "Failed to load gallery.",
       },
       {
         status: 500,
       }
     );
   }
-}
-
-// ============================================================================
-// UNSUPPORTED METHODS
-// ============================================================================
-
-export async function POST() {
-  return NextResponse.json(
-    {
-      success: false,
-      error: "Method not allowed. User gallery is read-only.",
-    },
-    {
-      status: 405,
-      headers: {
-        Allow: "GET",
-      },
-    }
-  );
-}
-
-export async function PUT() {
-  return NextResponse.json(
-    {
-      success: false,
-      error: "Method not allowed. User gallery is read-only.",
-    },
-    {
-      status: 405,
-      headers: {
-        Allow: "GET",
-      },
-    }
-  );
-}
-
-export async function PATCH() {
-  return NextResponse.json(
-    {
-      success: false,
-      error: "Method not allowed. User gallery is read-only.",
-    },
-    {
-      status: 405,
-      headers: {
-        Allow: "GET",
-      },
-    }
-  );
-}
-
-export async function DELETE() {
-  return NextResponse.json(
-    {
-      success: false,
-      error: "Method not allowed. User gallery is read-only.",
-    },
-    {
-      status: 405,
-      headers: {
-        Allow: "GET",
-      },
-    }
-  );
 }

@@ -12,8 +12,8 @@ import {
   ArrowLeft
 } from "lucide-react";
 import MediaUploader, {
-  UploadedMedia,
 } from "../../../../components/cloudinary/MediaUploader";
+import type { UploadedMedia } from "../../../../types/cloudinary";
 
 // --- TYPES & INTERFACES ---
 
@@ -148,8 +148,8 @@ function mapBackendItemToFrontend(item: any): GalleryItem {
     status: item.isDeleted
       ? "Archived"
       : item.isPublished
-      ? "Published"
-      : "Draft",
+        ? "Published"
+        : "Draft",
     date: item.publishedAt
       ? new Date(item.publishedAt).toISOString().split("T")[0]
       : new Date(item.createdAt).toISOString().split("T")[0],
@@ -194,6 +194,8 @@ export default function AdminGalleryDashboard() {
 
   // Form State
   const [formState, setFormState] = useState<GalleryFormState>(emptyForm);
+  const [thumbnailChanged, setThumbnailChanged] = useState(false);
+  const [mediaChanged, setMediaChanged] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -306,11 +308,16 @@ export default function AdminGalleryDashboard() {
   };
 
   const removeMediaItem = (index: number) => {
+    setMediaChanged(true);
+
     setFormState((prev) => ({
       ...prev,
       media: prev.media
         .filter((_, i) => i !== index)
-        .map((media, i) => ({ ...media, sortOrder: i })),
+        .map((media, i) => ({
+          ...media,
+          sortOrder: i,
+        })),
     }));
   };
 
@@ -381,10 +388,12 @@ export default function AdminGalleryDashboard() {
         throw new Error(result?.error || "Failed to create story");
       }
 
-      await fetchGallery();
+     await fetchGallery();
 
-      setIsCreateModalOpen(false);
-      setFormState(emptyForm);
+setIsCreateModalOpen(false);
+setFormState(emptyForm);
+setMediaChanged(false);
+setThumbnailChanged(false);
     } catch (err) {
       console.error("Create gallery error:", err);
 
@@ -428,7 +437,7 @@ export default function AdminGalleryDashboard() {
       setSaving(true);
       setError(null);
 
-      const payload = {
+      const payload: any = {
         id: editingItem.id,
         title: formState.title,
         description: formState.description,
@@ -439,11 +448,19 @@ export default function AdminGalleryDashboard() {
         isFeatured: formState.isFeatured,
         eventId: formState.eventId || null,
         campaignId: formState.campaignId || null,
-        thumbnailUrl: formState.thumbnailUrl || null,
-        thumbnailPublicId: formState.thumbnailPublicId || null,
         date: formState.date || null,
-        media: formState.media,
       };
+
+      if (thumbnailChanged) {
+        payload.thumbnailUrl = formState.thumbnailUrl || null;
+        payload.thumbnailPublicId =
+          formState.thumbnailPublicId || null;
+      }
+
+      if (mediaChanged) {
+        payload.updateMedia = true;
+        payload.media = formState.media;
+      }
 
       const response = await fetch("/api/admin/gallery", {
         method: "PATCH",
@@ -460,10 +477,12 @@ export default function AdminGalleryDashboard() {
         throw new Error(result?.error || "Failed to update story");
       }
 
-      await fetchGallery();
+     await fetchGallery();
 
-      setEditingItem(null);
-      setFormState(emptyForm);
+setEditingItem(null);
+setFormState(emptyForm);
+setMediaChanged(false);
+setThumbnailChanged(false);
     } catch (err) {
       console.error("Update gallery error:", err);
 
@@ -546,9 +565,9 @@ export default function AdminGalleryDashboard() {
         prev.map((galleryItem) =>
           galleryItem.id === item.id
             ? {
-                ...galleryItem,
-                status: isPublished ? "Published" : "Draft",
-              }
+              ...galleryItem,
+              status: isPublished ? "Published" : "Draft",
+            }
             : galleryItem
         )
       );
@@ -653,14 +672,14 @@ export default function AdminGalleryDashboard() {
             </motion.p>
           </div>
           <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-4">
-            <button className="px-6 py-3.5 bg-white text-gray-800 border border-gray-200 rounded-full text-[13px] font-extrabold shadow-sm hover:bg-gray-50 hover:shadow transition-all flex items-center gap-2">
-              <UploadCloud className="w-4 h-4 text-gray-600" /> Upload Media
-            </button>
             <button
-              onClick={() => {
-                setFormState(emptyForm);
-                setIsCreateModalOpen(true);
-              }}
+             onClick={() => {
+  setFormState(emptyForm);
+  setMediaChanged(false);
+  setThumbnailChanged(false);
+  setEditingItem(null);
+  setIsCreateModalOpen(true);
+}}
               className="px-8 py-3.5 bg-white text-black border border-gray-300 rounded-full text-[13px] font-extrabold shadow-sm hover:bg-gray-50 hover:shadow-md transition-all flex items-center gap-2 transform hover:-translate-y-0.5"
             >
               <Plus className="w-4 h-4 text-black" /> Create Story
@@ -711,22 +730,6 @@ export default function AdminGalleryDashboard() {
       </motion.div>
 
       {/* ==================================================== */}
-      {/* --- 3. SEARCH --- */}
-      {/* ==================================================== */}
-      <div className="relative z-10 px-4 md:px-8 flex items-center justify-end gap-6">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search gallery..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-full text-[13px] font-bold text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 outline-none shadow-sm transition-all"
-          />
-        </div>
-      </div>
-
-      {/* ==================================================== */}
       {/* --- 4. GALLERY GRID --- */}
       {/* ==================================================== */}
       <div className="relative z-10 px-4 md:px-8">
@@ -749,13 +752,11 @@ export default function AdminGalleryDashboard() {
                       <ImageIcon className="w-10 h-10 text-gray-300 group-hover:scale-110 transition-transform duration-700" />
                     )}
                     <div className="absolute top-4 left-4">
-                      <span className={`px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-md text-[9px] font-extrabold uppercase tracking-widest shadow-sm flex items-center gap-1.5 ${
-                        item.status === 'Published' ? 'text-green-700 border border-green-200' :
-                        item.status === 'Draft' ? 'text-orange-700 border border-orange-200' : 'text-gray-600 border border-gray-300'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          item.status === 'Published' ? 'bg-green-500' : item.status === 'Draft' ? 'bg-orange-500' : 'bg-gray-400'
-                        }`}></span>
+                      <span className={`px-2.5 py-1 bg-white/95 backdrop-blur-md rounded-md text-[9px] font-extrabold uppercase tracking-widest shadow-sm flex items-center gap-1.5 ${item.status === 'Published' ? 'text-green-700 border border-green-200' :
+                          item.status === 'Draft' ? 'text-orange-700 border border-orange-200' : 'text-gray-600 border border-gray-300'
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${item.status === 'Published' ? 'bg-green-500' : item.status === 'Draft' ? 'bg-orange-500' : 'bg-gray-400'
+                          }`}></span>
                         {item.status}
                       </span>
                     </div>
@@ -808,8 +809,9 @@ export default function AdminGalleryDashboard() {
                                     sortOrder: m.sortOrder,
                                   })),
                                 });
+
+                                setMediaChanged(false);
                                 setEditingItem(item);
-                                setActiveDropdown(null);
                               }} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2">
                                 <Edit3 className="w-3.5 h-3.5" /> Edit
                               </button>
@@ -820,7 +822,7 @@ export default function AdminGalleryDashboard() {
                                 <button onClick={() => togglePublishStatus(item)} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-green-600 hover:bg-green-50 flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5" /> Publish</button>
                               )}
                               <button onClick={() => { setDeletingItem(item); setActiveDropdown(null); }} className="w-full text-left px-4 py-2.5 text-[12px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2">
-                                <Trash2 className="w-3.5 h-3.5" /> Archive
+                                <Trash2 className="w-3.5 h-3.5" /> Delete
                               </button>
                             </motion.div>
                           )}
@@ -833,8 +835,8 @@ export default function AdminGalleryDashboard() {
                     </p>
 
                     <div className="mt-auto flex flex-col gap-2 pt-2 border-t border-gray-50">
-                      <p className="text-[11px] font-bold text-gray-600 flex items-center gap-2"><MapPin className="w-3 h-3 text-gray-400"/> {item.location}</p>
-                      <p className="text-[11px] font-bold text-gray-600 flex items-center gap-2"><Calendar className="w-3 h-3 text-gray-400"/> {item.date}</p>
+                      <p className="text-[11px] font-bold text-gray-600 flex items-center gap-2"><MapPin className="w-3 h-3 text-gray-400" /> {item.location}</p>
+                      <p className="text-[11px] font-bold text-gray-600 flex items-center gap-2"><Calendar className="w-3 h-3 text-gray-400" /> {item.date}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -879,9 +881,8 @@ export default function AdminGalleryDashboard() {
                     </button>
                     <span className="text-[12px] font-extrabold text-gray-500 uppercase tracking-widest">Story Details</span>
                   </div>
-                  <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border shadow-sm ${
-                      viewingItem.status === 'Published' ? 'text-green-600 bg-green-50 border-green-200' : 'text-orange-600 bg-orange-50 border-orange-200'
-                  }`}>
+                  <span className={`px-3 py-1.5 rounded-lg text-[10px] font-extrabold uppercase tracking-widest border shadow-sm ${viewingItem.status === 'Published' ? 'text-green-600 bg-green-50 border-green-200' : 'text-orange-600 bg-orange-50 border-orange-200'
+                    }`}>
                     {viewingItem.status}
                   </span>
                 </div>
@@ -905,9 +906,9 @@ export default function AdminGalleryDashboard() {
                       <div className="flex flex-wrap items-center gap-3 text-[12px] font-bold text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-sm w-fit">
                         <span className="text-blue-600 uppercase tracking-widest">{viewingItem.type}</span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5"/> {viewingItem.date}</span>
+                        <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> {viewingItem.date}</span>
                         <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                        <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5"/> {viewingItem.location}</span>
+                        <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {viewingItem.location}</span>
                       </div>
                     </div>
 
@@ -1000,12 +1001,11 @@ export default function AdminGalleryDashboard() {
                             {["Photo Story", "Video Story", "Event Story", "Campaign Story"].map((type) => (
                               <button
                                 key={type}
-                                onClick={(e) => { e.preventDefault(); setFormState({...formState, type: type as GalleryType}) }}
-                                className={`py-3 px-3 rounded-xl text-[12px] font-extrabold transition-all border ${
-                                  formState.type === type
-                                  ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
-                                  : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
-                                }`}
+                                onClick={(e) => { e.preventDefault(); setFormState({ ...formState, type: type as GalleryType }) }}
+                                className={`py-3 px-3 rounded-xl text-[12px] font-extrabold transition-all border ${formState.type === type
+                                    ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
+                                    : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                                  }`}
                               >
                                 {type}
                               </button>
@@ -1017,11 +1017,11 @@ export default function AdminGalleryDashboard() {
                         <div className="bg-white p-5 rounded-[1.5rem] border border-gray-200 shadow-sm space-y-5">
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Story Title</label>
-                            <input type="text" value={formState.title} onChange={e => setFormState({...formState, title: e.target.value})} placeholder="e.g., Education Drive" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 text-[13px] font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
+                            <input type="text" value={formState.title} onChange={e => setFormState({ ...formState, title: e.target.value })} placeholder="e.g., Education Drive" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 text-[13px] font-bold text-gray-900 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all" />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Description</label>
-                            <textarea rows={5} value={formState.description} onChange={e => setFormState({...formState, description: e.target.value})} placeholder="Write the full story details here..." className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 text-[13px] font-medium text-gray-800 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none custom-scrollbar" />
+                            <textarea rows={5} value={formState.description} onChange={e => setFormState({ ...formState, description: e.target.value })} placeholder="Write the full story details here..." className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 px-4 text-[13px] font-medium text-gray-800 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all resize-none custom-scrollbar" />
                           </div>
 
                           {/* Category (required by schema) */}
@@ -1060,19 +1060,21 @@ export default function AdminGalleryDashboard() {
                               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest flex items-center justify-between mb-1">
                                 Cover <span className="text-[9px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">Required</span>
                               </label>
-                              <MediaUploader
-                                accept="image"
-                                multiple={false}
-                                folder="ngo/gallery/images"
-                                buttonText="Upload Cover Image"
-                                onUpload={(media: UploadedMedia) => {
-                                  setFormState((prev) => ({
-                                    ...prev,
-                                    thumbnailUrl: media.url,
-                                    thumbnailPublicId: media.publicId,
-                                  }));
-                                }}
-                              />
+                             <MediaUploader
+  accept="image"
+  multiple={false}
+  folder="ngo/gallery/images"
+  buttonText="Upload Cover Image"
+  onUpload={(media: UploadedMedia) => {
+    setThumbnailChanged(true);
+
+    setFormState((prev) => ({
+      ...prev,
+      thumbnailUrl: media.url,
+      thumbnailPublicId: media.publicId,
+    }));
+  }}
+/>
                               {formState.thumbnailUrl && (
                                 <div className="mt-2 relative">
                                   <img
@@ -1082,13 +1084,15 @@ export default function AdminGalleryDashboard() {
                                   />
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      setFormState((prev) => ({
-                                        ...prev,
-                                        thumbnailUrl: "",
-                                        thumbnailPublicId: "",
-                                      }))
-                                    }
+                                    onClick={() => {
+  setThumbnailChanged(true);
+
+  setFormState((prev) => ({
+    ...prev,
+    thumbnailUrl: "",
+    thumbnailPublicId: "",
+  }));
+}}
                                     className="absolute top-1 right-1 p-1 rounded-full bg-gray-900/70 text-white hover:bg-gray-900 transition-colors"
                                   >
                                     <X className="w-3 h-3" />
@@ -1105,8 +1109,10 @@ export default function AdminGalleryDashboard() {
                                 multiple={true}
                                 folder="ngo/gallery/images"
                                 buttonText="Upload Images"
-                                onUpload={(media: UploadedMedia) => {
-                                  setFormState((prev) => ({
+                               onUpload={(media: UploadedMedia) => {
+  setMediaChanged(true);
+
+  setFormState((prev) => ({
                                     ...prev,
                                     media: [
                                       ...prev.media,
@@ -1134,8 +1140,10 @@ export default function AdminGalleryDashboard() {
                               multiple={true}
                               folder="ngo/gallery/videos"
                               buttonText="Upload Videos"
-                              onUpload={(media: UploadedMedia) => {
-                                setFormState((prev) => ({
+                            onUpload={(media: UploadedMedia) => {
+  setMediaChanged(true);
+
+  setFormState((prev) => ({
                                   ...prev,
                                   media: [
                                     ...prev.media,
@@ -1234,26 +1242,26 @@ export default function AdminGalleryDashboard() {
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Location</label>
-                              <input type="text" value={formState.location} onChange={e => setFormState({...formState, location: e.target.value})} placeholder="e.g., Pune" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[13px] font-bold text-gray-900 outline-none" />
+                              <input type="text" value={formState.location} onChange={e => setFormState({ ...formState, location: e.target.value })} placeholder="e.g., Pune" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[13px] font-bold text-gray-900 outline-none" />
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Story Date</label>
-                              <input type="date" value={formState.date} onChange={e => setFormState({...formState, date: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[13px] font-bold text-gray-900 outline-none cursor-pointer" />
+                              <input type="date" value={formState.date} onChange={e => setFormState({ ...formState, date: e.target.value })} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-[13px] font-bold text-gray-900 outline-none cursor-pointer" />
                             </div>
                           </div>
 
                           <div className="space-y-1.5 pt-2">
-                             <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest mb-2 block">Publish Status</label>
-                             <div className="flex gap-4">
-                               <label className="flex flex-1 items-center gap-2 cursor-pointer p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
-                                 <input type="radio" name="status" checked={formState.status === "Draft"} onChange={() => setFormState({...formState, status: "Draft"})} className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                                 <span className="text-[12px] font-bold text-gray-800">Draft</span>
-                               </label>
-                               <label className="flex flex-1 items-center gap-2 cursor-pointer p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
-                                 <input type="radio" name="status" checked={formState.status === "Published"} onChange={() => setFormState({...formState, status: "Published"})} className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
-                                 <span className="text-[12px] font-bold text-gray-800">Published</span>
-                               </label>
-                             </div>
+                            <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest mb-2 block">Publish Status</label>
+                            <div className="flex gap-4">
+                              <label className="flex flex-1 items-center gap-2 cursor-pointer p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="status" checked={formState.status === "Draft"} onChange={() => setFormState({ ...formState, status: "Draft" })} className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                                <span className="text-[12px] font-bold text-gray-800">Draft</span>
+                              </label>
+                              <label className="flex flex-1 items-center gap-2 cursor-pointer p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="status" checked={formState.status === "Published"} onChange={() => setFormState({ ...formState, status: "Published" })} className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500" />
+                                <span className="text-[12px] font-bold text-gray-800">Published</span>
+                              </label>
+                            </div>
                           </div>
 
                           <label className="flex items-center gap-2 cursor-pointer p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors w-fit">
@@ -1290,8 +1298,8 @@ export default function AdminGalleryDashboard() {
                       {saving
                         ? "Saving..."
                         : editingItem
-                        ? "Save Changes"
-                        : "Save Story"}
+                          ? "Save Changes"
+                          : "Save Story"}
                     </button>
                   </div>
                 </div>
@@ -1318,9 +1326,16 @@ export default function AdminGalleryDashboard() {
                 <div className="w-16 h-16 rounded-full bg-red-50 border border-red-100 flex items-center justify-center mb-5 shadow-sm">
                   <AlertCircle className="w-8 h-8 text-red-600" />
                 </div>
-                <h3 className="text-xl font-extrabold text-gray-900 mb-2">Archive Story?</h3>
+                <h3 className="text-xl font-extrabold text-gray-900 mb-2">
+                  Delete Story?
+                </h3>
                 <p className="text-[13px] font-bold text-gray-500 mb-8 leading-relaxed px-2">
-                  Are you sure you want to archive <strong className="text-gray-800">{deletingItem.title}</strong>? The story will be removed from the active gallery.
+                  Are you sure you want to permanently delete{" "}
+                  <strong className="text-gray-800">
+                    {deletingItem.title}
+                  </strong>
+                  ? This will delete the story, its database records, and all
+                  associated photos/videos from Cloudinary.
                 </p>
                 <div className="w-full flex gap-3">
                   <button
@@ -1335,7 +1350,7 @@ export default function AdminGalleryDashboard() {
                     onClick={confirmDelete}
                     className="flex-1 py-3.5 rounded-full font-extrabold text-[13px] text-white bg-red-600 border border-red-700 hover:bg-red-700 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {saving ? "Archiving..." : "Archive Story"}
+                    {saving ? "Deleting..." : "Delete Story"}
                   </button>
                 </div>
               </motion.div>

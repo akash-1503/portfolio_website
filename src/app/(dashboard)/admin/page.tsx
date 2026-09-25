@@ -40,7 +40,6 @@ interface DashboardResponse {
   success?: boolean;
   stats: DashboardStats;
   monthlyDonations: number[];
-  recentDonations: Donation[];
   activities: Activity[];
 }
 
@@ -290,56 +289,6 @@ export default function AdminDashboard() {
               ))}
             </div>
           </motion.div>
-
-          {/* Recent Donations Table */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
-            className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-extrabold text-gray-900">Recent Donations</h3>
-              <button className="text-[13px] font-bold text-[#16A34A] hover:text-[#15803d] px-4 py-2 rounded-full hover:bg-green-50 transition-colors">
-                View All
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-gray-50">
-                    <th className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Donor</th>
-                    <th className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Campaign</th>
-                    <th className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                    <th className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {(!dashboard?.recentDonations || dashboard.recentDonations.length === 0) ? (
-                    <tr>
-                      <td colSpan={4} className="py-8 text-center text-sm font-bold text-gray-400">No recent donations</td>
-                    </tr>
-                  ) : (
-                    dashboard.recentDonations.map((row: Donation, i: number) => (
-                      <tr key={i} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center font-extrabold text-sm text-[#16a34a] group-hover:bg-[#16a34a] group-hover:text-white transition-colors">
-                              {row.name ? row.name.charAt(0) : "U"}
-                            </div>
-                            <span className="font-extrabold text-gray-800 text-[14px]">{row.name || "Unknown"}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 text-[13px] font-bold text-gray-500">{row.campaign || "General"}</td>
-                        <td className="py-4 text-[13px] font-bold text-gray-400">{row.date}</td>
-                        <td className="py-4 text-[14px] font-extrabold text-gray-900 text-right">{row.amount}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
         </div>
 
         {/* Right Column (Side Panels) */}
@@ -417,9 +366,7 @@ export default function AdminDashboard() {
                 })
               )}
             </div>
-            <button className="w-full mt-6 py-3.5 rounded-full border-2 border-gray-50 font-bold text-[13px] text-gray-500 hover:border-gray-200 hover:bg-gray-50 hover:text-gray-800 transition-colors">
-              View Full Calendar
-            </button>
+      
           </motion.div>
         </div>
       </div>

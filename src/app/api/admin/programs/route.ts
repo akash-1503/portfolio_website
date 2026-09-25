@@ -31,7 +31,7 @@ const payload = verifyToken(token);
 
     const programs = await prisma.program.findMany({
     where: {
-        ngoId: payload.ngoId,
+        ngoId: payload.ngoId ?? "",
         isDeleted: false,
     },
 
@@ -154,6 +154,18 @@ if (payload.role !== "ADMIN") {
 }
 
 const ngoId = payload.ngoId;
+
+if (!ngoId) {
+    return NextResponse.json(
+        {
+            success: false,
+            message: "NGO association is required",
+        },
+        {
+            status: 400,
+        }
+    );
+}
 
 const createdBy = payload.id;
         const {
@@ -379,11 +391,22 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
+        const ngoId = payload.ngoId;
+        if (!ngoId) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "NGO ID is required",
+                },
+                { status: 400 }
+            );
+        }
+
         // Check if Program exists
       const existingProgram = await prisma.program.findFirst({
     where: {
         id,
-        ngoId: payload.ngoId,
+        ngoId,
         isDeleted: false,
     },
 });
@@ -530,7 +553,7 @@ const payload = verifyToken(token);
         const existingProgram = await prisma.program.findFirst({
            where:{
     id,
-    ngoId: payload.ngoId,
+    ngoId: payload.ngoId ?? "",
     isDeleted:false
 }
         });

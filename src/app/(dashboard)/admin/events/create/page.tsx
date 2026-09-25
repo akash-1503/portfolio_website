@@ -4,11 +4,25 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Calendar, MapPin, Users, DollarSign, Image as ImageIcon, 
-  Settings, UserCheck, Shield, ChevronLeft, UploadCloud, 
-  CheckCircle2, Info, Building2, ClipboardList, Target
+import {
+  Calendar,
+  MapPin,
+  Users,
+  DollarSign,
+  Image as ImageIcon,
+  Settings,
+  UserCheck,
+  Shield,
+  ChevronLeft,
+  CheckCircle2,
+  Info,
+  Building2,
+  ClipboardList,
+  Target
 } from "lucide-react";
+import { CLOUDINARY_FOLDERS } from "../../../../../lib/cloudinary-folders";
+import MediaUploader from "../../../../../components/cloudinary/MediaUploader";
+import type { UploadedMedia } from "../../../../../types/cloudinary";
 
 // Reusable Section Card Component
 const SectionCard = ({ title, icon: Icon, children, delay }: { title: string, icon: any, children: React.ReactNode, delay: number }) => (
@@ -71,7 +85,8 @@ export default function CreateEventPage() {
     timezone: "Asia/Kolkata",
     programId: "",
     coverImage: "",
-    status: "DRAFT",
+coverImagePublicId: "",
+status: "DRAFT",
     maxParticipants: "",
     maxVolunteers: "",
     minVolunteers: "",
@@ -125,31 +140,63 @@ export default function CreateEventPage() {
     }
   };
 
-  // --- PHASE 4: Simulated Image Upload ---
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // TODO: In production, upload to Cloudinary here via POST /api/upload
-    // For now, we simulate receiving a secure Cloudinary URL
-    const mockCloudinaryUrl = URL.createObjectURL(file); // Temporary visual preview
-    setFormData(prev => ({ ...prev, coverImage: mockCloudinaryUrl }));
-    alert("Image uploaded successfully! (Mocked)");
-  };
 
   // --- PHASE 5 & 7: Form Submission & Redirect ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic Frontend Validation
-    if (!formData.title || !formData.startDate || !formData.endDate) {
-      alert("Please fill in all required fields (Title, Start Date, End Date).");
-      return;
-    }
-    if (new Date(formData.startDate) >= new Date(formData.endDate)) {
-      alert("Start Date must be before End Date.");
-      return;
-    }
+// ========================================
+// FRONTEND VALIDATION
+// ========================================
+
+if (!formData.title.trim()) {
+  alert(`${formData.recordType} title is required.`);
+  return;
+}
+
+if (!formData.description.trim()) {
+  alert(`${formData.recordType} description is required.`);
+  return;
+}
+
+if (!formData.startDate) {
+  alert("Start date and time are required.");
+  return;
+}
+
+if (!formData.endDate) {
+  alert("End date and time are required.");
+  return;
+}
+
+if (new Date(formData.startDate) >= new Date(formData.endDate)) {
+  alert("Start Date must be before End Date.");
+  return;
+}
+
+// Event-only validation
+if (formData.recordType === "Event") {
+  if (!formData.category) {
+    alert("Event category is required.");
+    return;
+  }
+
+  if (!formData.venue.trim()) {
+    alert("Event venue is required.");
+    return;
+  }
+}
+
+// Campaign-only validation
+if (formData.recordType === "Campaign") {
+  if (
+    formData.goalAmount === "" ||
+    Number(formData.goalAmount) <= 0
+  ) {
+    alert("Campaign goal amount must be greater than zero.");
+    return;
+  }
+}
 
     setIsSubmitting(true);
     
@@ -216,96 +263,298 @@ export default function CreateEventPage() {
 
       <form onSubmit={handleSubmit} className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* --- LEFT COLUMN (Form Sections) --- */}
-        <div className="lg:col-span-2">
-          
-          {/* Basic Information */}
-          <SectionCard title="Basic Information" icon={Info} delay={0.2}>
-            
-            {/* EVENT VS CAMPAIGN TOGGLE */}
-            <div className="flex gap-4 mb-2">
-              <label 
-                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 p-4 rounded-[1.2rem] border-2 cursor-pointer transition-all ${
-                  formData.recordType === "Event" 
-                  ? "border-[#16a34a] bg-green-50 text-[#16a34a] shadow-sm" 
-                  : "border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100"
-                }`}
-              >
-                <input type="radio" name="recordType" value="Event" checked={formData.recordType === "Event"} onChange={handleChange} className="hidden" />
-                <Calendar className="w-5 h-5" />
-                <span className="font-extrabold text-sm tracking-wide">Event</span>
-              </label>
-              
-              <label 
-                className={`flex-1 flex flex-col sm:flex-row items-center justify-center gap-2 p-4 rounded-[1.2rem] border-2 cursor-pointer transition-all ${
-                  formData.recordType === "Campaign" 
-                  ? "border-[#f97316] bg-orange-50 text-[#f97316] shadow-sm" 
-                  : "border-gray-100 bg-gray-50 text-gray-400 hover:bg-gray-100"
-                }`}
-              >
-                <input type="radio" name="recordType" value="Campaign" checked={formData.recordType === "Campaign"} onChange={handleChange} className="hidden" />
-                <Target className="w-5 h-5" />
-                <span className="font-extrabold text-sm tracking-wide">Campaign</span>
-              </label>
-            </div>
+       {/* LEFT COLUMN (Form Sections) */}
+<div className="lg:col-span-2">
 
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{formData.recordType} Title *</label>
-              <input type="text" name="title" value={formData.title} onChange={handleChange} required placeholder={`e.g., Annual Tree Plantation ${formData.recordType}`} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50" />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{formData.recordType} Category *</label>
-                <select name="category" value={formData.category} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all cursor-pointer hover:bg-gray-50 appearance-none">
-                  {dropdownData.categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">{formData.recordType} Type *</label>
-                <select name="eventType" value={formData.eventType} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all cursor-pointer hover:bg-gray-50 appearance-none">
-                  {dropdownData.eventTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                </select>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Short Summary*</label>
-              <textarea name="summary" value={formData.summary} onChange={handleChange} rows={2} placeholder="A brief 1-2 sentence description..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Main Objective *</label>
-              <textarea name="description" value={formData.description} onChange={handleChange} required rows={5} placeholder={`Full ${formData.recordType.toLowerCase()} details, agenda, and expectations...`} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 focus:border-[#16a34a] transition-all hover:bg-gray-50 custom-scrollbar resize-none" />
-            </div>
-          </SectionCard>
+  {/* ================================
+      BASIC INFORMATION
+  ================================= */}
+
+  <SectionCard
+    title="Basic Information"
+    icon={ClipboardList}
+    delay={0.2}
+  >
+    {/* Record Type */}
+    <div className="space-y-2">
+      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+        Type *
+      </label>
+
+      <select
+        name="recordType"
+        value={formData.recordType}
+        onChange={handleChange}
+        className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none"
+      >
+        <option value="Event">Event</option>
+        <option value="Campaign">Campaign</option>
+      </select>
+    </div>
+
+    {/* Title */}
+    <div className="space-y-2">
+      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+        {formData.recordType} Title *
+      </label>
+
+      <input
+        type="text"
+        name="title"
+        value={formData.title}
+        onChange={handleChange}
+        placeholder={`Enter ${formData.recordType.toLowerCase()} title`}
+        required
+        className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all"
+      />
+    </div>
+
+    {/* Event-only fields */}
+    {formData.recordType === "Event" && (
+      <>
+        {/* Category */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+            Category *
+          </label>
+
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none"
+          >
+            <option value="">Select Category</option>
+
+            {dropdownData.categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Event Type */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+            Event Type
+          </label>
+
+          <select
+            name="eventType"
+            value={formData.eventType}
+            onChange={handleChange}
+            className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none"
+          >
+            <option value="">Select Event Type</option>
+
+            {dropdownData.eventTypes.map((eventType) => (
+              <option key={eventType} value={eventType}>
+                {eventType}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Summary */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+            Short Summary
+          </label>
+
+          <input
+            type="text"
+            name="summary"
+            value={formData.summary}
+            onChange={handleChange}
+            placeholder="Short summary of the event"
+            className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all"
+          />
+        </div>
+      </>
+    )}
+
+    {/* Description */}
+    <div className="space-y-2">
+      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+        Description *
+      </label>
+
+      <textarea
+        name="description"
+        value={formData.description}
+        onChange={handleChange}
+        rows={5}
+        placeholder={`Describe the ${formData.recordType.toLowerCase()}...`}
+        required
+        className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all resize-none"
+      />
+    </div>
+  </SectionCard>
+
+  {/* ================================
+      COVER IMAGE
+  ================================= */}
+
+  <SectionCard title="Cover Image" icon={ImageIcon} delay={0.3}>
+  <div className="space-y-4">
+
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+          {formData.recordType} Cover Image
+        </label>
+
+        <span className="text-[9px] font-extrabold text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+          ONE IMAGE
+        </span>
+      </div>
+
+      <MediaUploader
+        accept="image"
+        multiple={false}
+        folder={
+          formData.recordType === "Event"
+            ? CLOUDINARY_FOLDERS.events.covers
+            : CLOUDINARY_FOLDERS.campaigns.covers
+        }
+        buttonText={
+          formData.coverImage
+            ? `Replace ${formData.recordType} Cover`
+            : `Upload ${formData.recordType} Cover`
+        }
+        onUpload={(media: UploadedMedia) => {
+          setFormData((prev) => ({
+            ...prev,
+            coverImage: media.url,
+            coverImagePublicId: media.publicId,
+          }));
+        }}
+      />
+    </div>
+
+    {formData.coverImage && (
+      <div className="relative overflow-hidden rounded-[1.5rem] border border-gray-200">
+
+        <img
+          src={formData.coverImage}
+          alt={`${formData.recordType} cover`}
+          className="w-full h-56 object-cover"
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+
+        <button
+          type="button"
+          onClick={() =>
+            setFormData((prev) => ({
+              ...prev,
+              coverImage: "",
+              coverImagePublicId: "",
+            }))
+          }
+          className="absolute top-3 right-3 px-4 py-2 rounded-full bg-red-500 text-white text-[11px] font-extrabold shadow-lg hover:bg-red-600 transition-colors"
+        >
+          Remove
+        </button>
+
+        <div className="absolute bottom-4 left-4">
+          <span className="text-white text-[11px] font-extrabold uppercase tracking-widest">
+            Cover Preview
+          </span>
+        </div>
+
+      </div>
+    )}
+
+  </div>
+</SectionCard>
 
           {/* Schedule */}
-          <SectionCard title="Schedule" icon={Calendar} delay={0.3}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Start Date & Time *</label>
-                <input type="datetime-local" name="startDate" value={formData.startDate} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date & Time *</label>
-                <input type="datetime-local" name="endDate" value={formData.endDate} onChange={handleChange} required className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Registration Deadline</label>
-                <input type="date" name="registrationDeadline" value={formData.registrationDeadline} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all hover:bg-gray-50 text-gray-700" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Timezone</label>
-                <select name="timezone" value={formData.timezone} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none text-gray-700 cursor-pointer">
-                  {dropdownData.timezones.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                </select>
-              </div>
-            </div>
-          </SectionCard>
+         <SectionCard title="Schedule" icon={Calendar} delay={0.4}>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+    {/* Start */}
+    <div className="space-y-2">
+      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+        Start Date & Time *
+      </label>
+
+      <input
+        type="datetime-local"
+        name="startDate"
+        value={formData.startDate}
+        onChange={handleChange}
+        required
+        className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all text-gray-700"
+      />
+    </div>
+
+    {/* End */}
+    <div className="space-y-2">
+      <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+        End Date & Time *
+      </label>
+
+      <input
+        type="datetime-local"
+        name="endDate"
+        value={formData.endDate}
+        onChange={handleChange}
+        required
+        className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all text-gray-700"
+      />
+    </div>
+
+    {/* Event-only schedule fields */}
+    {formData.recordType === "Event" && (
+      <>
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+            Registration Deadline
+          </label>
+
+          <input
+            type="date"
+            name="registrationDeadline"
+            value={formData.registrationDeadline}
+            onChange={handleChange}
+            className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all text-gray-700"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">
+            Timezone
+          </label>
+
+          <select
+            name="timezone"
+            value={formData.timezone}
+            onChange={handleChange}
+            className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all appearance-none text-gray-700"
+          >
+            {dropdownData.timezones.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
+        </div>
+      </>
+    )}
+
+  </div>
+</SectionCard>
 
           {/* Venue (Only strictly relevant if it's an Event, but kept standard) */}
-          <SectionCard title="Venue / Location" icon={MapPin} delay={0.4}>
+          {formData.recordType === "Event" && (
+  <SectionCard
+    title="Venue / Location"
+    icon={MapPin}
+    delay={0.5}
+  >
             <div className="space-y-2">
               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Venue Name</label>
               <input type="text" name="venue" value={formData.venue} onChange={handleChange} placeholder="e.g., City Central Park" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all" />
@@ -325,6 +574,7 @@ export default function CreateEventPage() {
               <input type="url" name="googleMapUrl" value={formData.googleMapUrl} onChange={handleChange} placeholder="https://maps.google.com/..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 transition-all text-[#16a34a]" />
             </div>
           </SectionCard>
+          )}
 
           {/* Capacity & Volunteers */}
           <SectionCard title="Volunteers & Capacity" icon={Users} delay={0.5}>
@@ -349,7 +599,12 @@ export default function CreateEventPage() {
           </SectionCard>
 
           {/* Budget & Finance (Using Goal Amount) */}
-          <SectionCard title="Financials & Budget" icon={DollarSign} delay={0.6}>
+         {formData.recordType === "Campaign" && (
+  <SectionCard
+    title="Campaign Goal"
+    icon={DollarSign}
+    delay={0.7}
+  >
             <div className="space-y-2 mb-6">
               <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Total Estimated Budget / Goal Amount</label>
               <div className="relative">
@@ -358,34 +613,7 @@ export default function CreateEventPage() {
               </div>
             </div>
           </SectionCard>
-
-          {/* Media Uploads */}
-          <SectionCard title="Media & Assets" icon={ImageIcon} delay={0.7}>
-            <div className={`border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center text-center transition-colors relative group overflow-hidden ${formData.coverImage ? 'border-[#16a34a] bg-green-50' : 'border-gray-300 bg-gray-50 hover:bg-green-50/50 hover:border-[#16a34a]/50'}`}>
-              
-              {formData.coverImage && (
-                <div className="absolute inset-0 w-full h-full opacity-30 pointer-events-none">
-                  <img src={formData.coverImage} alt="Cover Preview" className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              <div className="relative z-10 w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <UploadCloud className={`w-8 h-8 ${formData.coverImage ? 'text-[#16a34a]' : 'text-gray-400'}`} />
-              </div>
-              <h4 className="relative z-10 text-[15px] font-extrabold text-gray-900">
-                {formData.coverImage ? "Banner Uploaded" : `Upload ${formData.recordType} Banner`}
-              </h4>
-              <p className="relative z-10 text-[12px] font-bold text-gray-500 mt-1 mb-4">
-                {formData.coverImage ? "Click to replace image" : "Drag and drop, or click to browse (1920x1080px recommended)"}
-              </p>
-              
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
-              
-              <button type="button" className="relative z-10 px-6 py-2.5 bg-white border border-gray-200 rounded-full text-[12px] font-extrabold text-gray-600 shadow-sm transition-colors pointer-events-none">
-                Browse Files
-              </button>
-            </div>
-          </SectionCard>
+        )}
 
         </div>
 

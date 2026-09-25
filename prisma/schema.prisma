@@ -47,6 +47,13 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  OTHER
+}
+
 enum ProgramStatus {
   UPCOMING
   ACTIVE
@@ -193,6 +200,24 @@ model User {
   phone String?
 
   image String?
+
+  imagePublicId String?
+
+  dateOfBirth DateTime?
+
+  gender Gender?
+
+  addressLine1 String?
+
+  addressLine2 String?
+
+  city String?
+
+  state String?
+
+  country String?
+
+  postalCode String?
 
   role Role @default(USER)
 
@@ -564,7 +589,8 @@ model Campaign {
 
   raisedAmount Decimal @default(0) @db.Decimal(12, 2)
 
-  coverImage String?
+  coverImage         String?
+  coverImagePublicId String?
 
   startDate DateTime
 
@@ -648,7 +674,8 @@ model Event {
 
   maxGuests Int?
 
-  coverImage String?
+  coverImage         String?
+  coverImagePublicId String?
 
   status EventStatus @default(UPCOMING)
 

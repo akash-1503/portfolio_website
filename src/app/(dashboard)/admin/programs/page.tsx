@@ -13,6 +13,9 @@ import {
   updateProgram,
   deleteProgram,
 } from "../../../../services/program.service";
+import { CLOUDINARY_FOLDERS } from "../../../../lib/cloudinary-folders";
+import MediaUploader from "../../../../components/cloudinary/MediaUploader";
+import type { UploadedMedia } from "../../../../types/cloudinary";
 
 
 const programCategories = [
@@ -25,7 +28,7 @@ const programCategories = [
 export default function ProgramsPage() {
   const [programs, setPrograms] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Form States
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
@@ -33,32 +36,36 @@ export default function ProgramsPage() {
   const [coordinator, setCoordinator] = useState("");
   const [manager, setManager] = useState("");
   const [budget, setBudget] = useState("");
-  
+
   const [campaigns, setCampaigns] = useState(0);
   const [events, setEvents] = useState(0);
   const [volunteers, setVolunteers] = useState(0);
   const [beneficiaries, setBeneficiaries] = useState(0);
-  
+
   const [progress, setProgress] = useState(0);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [location, setLocation] = useState("");
   const [status, setStatus] = useState("UPCOMING");
+
   const [coverImage, setCoverImage] = useState("");
+  const [coverImagePublicId, setCoverImagePublicId] = useState("");
+
+  const [coverChanged, setCoverChanged] = useState(false);
 
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   // Modal States
   const [selectedProgram, setSelectedProgram] =
-useState<any>(null);
+    useState<any>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [programToEdit, setProgramToEdit] = useState<any | null>(null);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
- const [programToDelete, setProgramToDelete] =
-useState<any>(null);
+  const [programToDelete, setProgramToDelete] =
+    useState<any>(null);
 
   // Handlers
   const handleEditClick = (program: any) => {
@@ -69,21 +76,27 @@ useState<any>(null);
     setCoordinator(program.coordinator || "");
     setManager(program.manager || "");
     setBudget(program.budget || "");
-   setCampaigns(program.campaigns?.length ?? 0);
-setEvents(program.events?.length ?? 0);
-setVolunteers(program.volunteers?.length ?? 0);
+    setCampaigns(program.campaigns?.length ?? 0);
+    setEvents(program.events?.length ?? 0);
+    setVolunteers(program.volunteers?.length ?? 0);
     setBeneficiaries(program.beneficiaries || 0);
     setProgress(program.progress || 0);
     setLocation(program.location || "");
     setStartDate(program.startDate || "");
     setEndDate(program.endDate || "");
     setStatus(program.status || "UPCOMING");
+
     setCoverImage(program.coverImage || "");
+    setCoverImagePublicId(program.coverImagePublicId || "");
+
+    setCoverChanged(false);
+
     setIsEditModalOpen(true);
+    setActiveDropdown(null);
     setActiveDropdown(null);
   };
 
-const handleDeleteClick = (prog: any) => { 
+  const handleDeleteClick = (prog: any) => {
     setProgramToDelete(prog);
     setIsDeleteModalOpen(true);
     setActiveDropdown(null);
@@ -108,10 +121,10 @@ const handleDeleteClick = (prog: any) => {
   };
 
   const filteredPrograms =
-programs.filter(program =>
-program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-program.coordinator?.toLowerCase().includes(searchQuery.toLowerCase())
-);
+    programs.filter(program =>
+      program.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      program.coordinator?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
   useEffect(() => {
     loadPrograms();
   }, []);
@@ -126,73 +139,76 @@ program.coordinator?.toLowerCase().includes(searchQuery.toLowerCase())
       console.error(error);
     }
   }
-  
- async function handleCreateProgram() {
 
-  console.log("Create button clicked");
+  async function handleCreateProgram() {
 
-  try {
+    console.log("Create button clicked");
 
-    const data = {
-      ngoId: "YOUR_REAL_NGO_ID",
-      createdBy: "YOUR_REAL_USER_ID",
-      name,
-      category,
-      description,
-      coordinator,
-      manager,
-      budget,
-      campaigns,
-      events,
-      volunteers,
-      beneficiaries,
-      progress,
-      location,
-      coverImage,
-      status,
-      startDate,
-      endDate,
-    };
+    try {
 
-    console.log("Sending:", data);
+      const data = {
+        ngoId: "YOUR_REAL_NGO_ID",
+        createdBy: "YOUR_REAL_USER_ID",
+        name,
+        category,
+        description,
+        coordinator,
+        manager,
+        budget,
+        campaigns,
+        events,
+        volunteers,
+        beneficiaries,
+        progress,
+        location,
+        coverImage,
+        coverImagePublicId,
+        status,
+        startDate,
+        endDate,
+      };
 
-    const res = await createProgram(data);
+      console.log("Sending:", data);
 
-    console.log("Response:", res);
+      const res = await createProgram(data);
 
-    if (res.success) {
+      console.log("Response:", res);
 
-      await loadPrograms();
+      if (res.success) {
 
-  setName("");
-  setCategory("");
-  setDescription("");
-  setCoordinator("");
-  setManager("");
-  setBudget("");
-  setCampaigns(0);
-  setEvents(0);
-  setVolunteers(0);
-  setBeneficiaries(0);
-  setProgress(0);
-  setLocation("");
-  setStartDate("");
-  setEndDate("");
-  setStatus("UPCOMING");
-  setCoverImage("");
+        await loadPrograms();
+
+        setName("");
+        setCategory("");
+        setDescription("");
+        setCoordinator("");
+        setManager("");
+        setBudget("");
+        setCampaigns(0);
+        setEvents(0);
+        setVolunteers(0);
+        setBeneficiaries(0);
+        setProgress(0);
+        setLocation("");
+        setStartDate("");
+        setEndDate("");
+        setStatus("UPCOMING");
+        setCoverImage("");
+        setCoverImagePublicId("");
+        setCoverChanged(false);
 
 
-      setIsCreateModalOpen(false);
+        setIsCreateModalOpen(false);
+
+      }
+
+    } catch (err) {
+
+      console.error(err);
 
     }
 
-  } catch (err) {
-
-    console.error(err);
-
   }
-
-}
 
   async function handleUpdateProgram() {
     if (!programToEdit) return;
@@ -212,7 +228,7 @@ program.coordinator?.toLowerCase().includes(searchQuery.toLowerCase())
         progress,
         location,
         startDate: new Date(startDate),
-endDate: endDate ? new Date(endDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
         status,
         coverImage,
       });
@@ -269,7 +285,13 @@ endDate: endDate ? new Date(endDate) : null,
         </div>
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="flex gap-3">
           <button
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              setCoverImage("");
+              setCoverImagePublicId("");
+              setCoverChanged(false);
+
+              setIsCreateModalOpen(true);
+            }}
             className="flex items-center gap-2 px-6 py-3.5 bg-[#16A34A] rounded-full font-bold text-[13px] text-white shadow-[0_8px_20px_rgba(22,163,74,0.25)] hover:bg-[#15803d] hover:-translate-y-0.5 transition-all"
           >
             <Plus className="w-4 h-4" /> Create Program
@@ -302,24 +324,63 @@ endDate: endDate ? new Date(endDate) : null,
                 className={`bg-white/80 backdrop-blur-xl border border-white/60 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-xl transition-all flex flex-col relative ${activeDropdown === prog.id ? 'z-50' : 'z-10 overflow-hidden'}`}
               >
                 {/* Header Banner */}
-                <div className={`h-32 w-full ${prog.color || 'bg-blue-50'} relative p-6 flex flex-col justify-end overflow-hidden rounded-t-[2.5rem]`}>
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+                <div
+                  className={`h-32 w-full relative p-6 flex flex-col justify-end overflow-hidden rounded-t-[2.5rem] ${prog.coverImage ? "" : (prog.color || "bg-blue-50")
+                    }`}
+                >
+                  {/* Program Cover Image */}
+                  {prog.coverImage && (
+                    <img
+                      src={prog.coverImage}
+                      alt={`${prog.name} cover`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+
+                  {/* Dark overlay so badges/icons remain visible */}
+                  <div className="absolute inset-0 bg-black/20" />
+
+                  {/* Soft gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
 
                   {/* Status Badge */}
-                  <div className="absolute top-4 left-4">
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-white shadow-sm ${prog.textColor || 'text-blue-600'}`}>{prog.status}</span>
+                  <div className="absolute top-4 left-4 z-10">
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-white shadow-sm ${prog.textColor || "text-blue-600"
+                        }`}
+                    >
+                      {prog.status}
+                    </span>
                   </div>
 
-                  {/* Actions Dropdown Button in Banner */}
+                  {/* Actions Dropdown Button */}
                   <div className="absolute top-4 right-4 z-20">
-                    <button onClick={() => setActiveDropdown(activeDropdown === prog.id ? null : prog.id)} className="p-1.5 text-gray-700 bg-white/50 hover:bg-white rounded-full transition-colors backdrop-blur-sm shadow-sm">
+                    <button
+                      onClick={() =>
+                        setActiveDropdown(
+                          activeDropdown === prog.id ? null : prog.id
+                        )
+                      }
+                      className="p-1.5 text-gray-700 bg-white/80 hover:bg-white rounded-full transition-colors backdrop-blur-md shadow-sm"
+                    >
                       <MoreVertical className="w-4 h-4" />
                     </button>
                   </div>
 
+                  {/* Program Icon */}
                   <div className="relative z-10 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
-                      {prog.icon ? <prog.icon className={`w-6 h-6 ${prog.textColor}`} /> : <BookOpen className="w-6 h-6 text-blue-600" />}
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-md">
+                      {prog.icon ? (
+                        <prog.icon
+                          className={`w-6 h-6 ${prog.textColor || "text-blue-600"
+                            }`}
+                        />
+                      ) : (
+                        <BookOpen
+                          className={`w-6 h-6 ${prog.textColor || "text-blue-600"
+                            }`}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -388,7 +449,7 @@ endDate: endDate ? new Date(endDate) : null,
                     <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-6">
                       <div className={`h-full rounded-full ${(prog.color || 'bg-blue-100').replace('100', '500')}`} style={{ width: `${prog.progress || 0}%` }}></div>
                     </div>
-                   <button onClick={() => setSelectedProgram(prog)} className="w-full py-3.5 bg-gray-50 text-gray-700 rounded-full text-[12px] font-extrabold hover:bg-[#16a34a] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
+                    <button onClick={() => setSelectedProgram(prog)} className="w-full py-3.5 bg-gray-50 text-gray-700 rounded-full text-[12px] font-extrabold hover:bg-[#16a34a] hover:text-white transition-all shadow-sm flex items-center justify-center gap-2">
                       <Eye className="w-4 h-4" /> View Details
                     </button>
                   </div>
@@ -413,12 +474,24 @@ endDate: endDate ? new Date(endDate) : null,
         {selectedProgram && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelectedProgram(null)} className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" />
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: "spring", damping: 30, stiffness: 300 }}
               className="relative w-full max-w-[800px] max-h-[90vh] bg-[#fafafa] rounded-[2.5rem] shadow-2xl z-[101] flex flex-col overflow-hidden"
             >
               {/* Modal Header / Banner */}
-              <div className={`relative h-40 w-full ${selectedProgram.color || 'bg-blue-100'} shrink-0 p-8 flex flex-col justify-end`}>
+              <div
+                className={`relative h-40 w-full ${selectedProgram.coverImage ? "" : (selectedProgram.color || "bg-blue-100")
+                  } shrink-0 p-8 flex flex-col justify-end overflow-hidden`}
+              >
+                {selectedProgram.coverImage && (
+                  <img
+                    src={selectedProgram.coverImage}
+                    alt={`${selectedProgram.name} cover`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+
+                <div className="absolute inset-0 bg-black/20" />
                 <button onClick={() => setSelectedProgram(null)} className="absolute top-6 right-6 p-2 bg-white/50 hover:bg-white text-gray-800 rounded-full shadow-sm transition-all backdrop-blur-md"><X className="w-4 h-4" /></button>
                 <div className="absolute top-6 left-6">
                   <span className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-white shadow-sm ${selectedProgram.textColor || 'text-blue-600'}`}>{selectedProgram.status}</span>
@@ -436,7 +509,7 @@ endDate: endDate ? new Date(endDate) : null,
 
               {/* Modal Scrollable Content */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
-                
+
                 {/* 1. Overview */}
                 <p className="text-[13px] font-bold text-gray-600 mb-6 leading-relaxed">{selectedProgram.description}</p>
                 <div className="grid grid-cols-2 gap-4 mb-8">
@@ -492,73 +565,73 @@ endDate: endDate ? new Date(endDate) : null,
                     <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Target className="w-3.5 h-3.5" /> Linked Campaigns</h4>
                     <div className="flex flex-col gap-3">
 
-    {selectedProgram.campaigns?.length > 0 ? (
+                      {selectedProgram.campaigns?.length > 0 ? (
 
-        selectedProgram.campaigns.map((campaign: any) => (
+                        selectedProgram.campaigns.map((campaign: any) => (
 
-            <div
-                key={campaign.id}
-                className="bg-green-50 border border-green-200 rounded-xl p-4"
-            >
-                <div className="font-bold text-green-700">
-                    {campaign.title}
-                </div>
+                          <div
+                            key={campaign.id}
+                            className="bg-green-50 border border-green-200 rounded-xl p-4"
+                          >
+                            <div className="font-bold text-green-700">
+                              {campaign.title}
+                            </div>
 
-                <div className="text-xs text-gray-500 mt-1">
-                    Status : {campaign.status}
-                </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Status : {campaign.status}
+                            </div>
 
-            </div>
+                          </div>
 
-        ))
+                        ))
 
-    ) : (
+                      ) : (
 
-        <p className="text-sm text-gray-400">
-            No linked campaigns
-        </p>
+                        <p className="text-sm text-gray-400">
+                          No linked campaigns
+                        </p>
 
-    )}
+                      )}
 
-</div>
+                    </div>
                   </div>
                   <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
                     <h4 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Calendar className="w-3.5 h-3.5" /> Linked Events</h4>
                     <div className="flex flex-col gap-3">
 
-    {selectedProgram.events?.length > 0 ? (
+                      {selectedProgram.events?.length > 0 ? (
 
-        selectedProgram.events.map((event: any) => (
+                        selectedProgram.events.map((event: any) => (
 
-            <div
-                key={event.id}
-                className="bg-orange-50 border border-orange-200 rounded-xl p-4"
-            >
-                <div className="font-bold text-orange-700">
-                    {event.title}
-                </div>
+                          <div
+                            key={event.id}
+                            className="bg-orange-50 border border-orange-200 rounded-xl p-4"
+                          >
+                            <div className="font-bold text-orange-700">
+                              {event.title}
+                            </div>
 
-                <div className="text-xs text-gray-500 mt-1">
-                    Status : {event.status}
-                </div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Status : {event.status}
+                            </div>
 
-                <div className="text-xs text-gray-500">
-                    {new Date(event.startDate).toLocaleDateString()}
-                </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(event.startDate).toLocaleDateString()}
+                            </div>
 
-            </div>
+                          </div>
 
-        ))
+                        ))
 
-    ) : (
+                      ) : (
 
-        <p className="text-sm text-gray-400">
-            No linked events
-        </p>
+                        <p className="text-sm text-gray-400">
+                          No linked events
+                        </p>
 
-    )}
+                      )}
 
-</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -594,74 +667,104 @@ endDate: endDate ? new Date(endDate) : null,
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  
-                  {/* File Upload Area */}
-                  <div className="col-span-1 md:col-span-2 border-2 border-dashed border-gray-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-green-50/50 transition-colors cursor-pointer relative">
+
+                  {/* Program Cover Image */}
+                  <div className="col-span-1 md:col-span-2 border-2 border-dashed border-gray-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-green-50/50 transition-colors relative">
+
                     <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
                       <UploadCloud className="w-6 h-6 text-[#16a34a]" />
                     </div>
-                    <h4 className="text-[13px] font-extrabold text-gray-900">Upload Program Banner</h4>
-                    <p className="text-[11px] font-bold text-gray-400 mb-2">1920x1080px recommended</p>
-                    {coverImage && <p className="text-[11px] font-bold text-[#16a34a] bg-green-100 px-3 py-1 rounded-full">{coverImage}</p>}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setCoverImage(file.name);
-                        }
+
+                    <h4 className="text-[13px] font-extrabold text-gray-900">
+                      Upload Program Banner
+                    </h4>
+
+                    <p className="text-[11px] font-bold text-gray-400 mb-4">
+                      1920x1080px recommended
+                    </p>
+
+                    <MediaUploader
+                      accept="image"
+                      multiple={false}
+                      folder={CLOUDINARY_FOLDERS.programs.covers}
+                      buttonText="Upload Program Cover"
+                      onUpload={(media: UploadedMedia) => {
+                        setCoverImage(media.url);
+                        setCoverImagePublicId(media.publicId);
+                        setCoverChanged(true);
                       }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
+
+                    {coverImage && (
+                      <div className="mt-4 w-full max-w-md">
+                        <img
+                          src={coverImage}
+                          alt="Program cover preview"
+                          className="w-full h-48 object-cover rounded-2xl border border-gray-200"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverImage("");
+                            setCoverImagePublicId("");
+                            setCoverChanged(true);
+                          }}
+                          className="mt-3 text-[11px] font-extrabold text-red-500 hover:text-red-600"
+                        >
+                          Remove Cover
+                        </button>
+                      </div>
+                    )}
+
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Program Name *</label>
-                    <input type="text" value={name} onChange={(e)=>setName(e.target.value)} placeholder="e.g. Health for All" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Health for All" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Category *</label>
-                    <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none">
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none appearance-none">
                       <option value="">Select a Category</option>
                       {programCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
-                  
+
                   <div className="space-y-1.5 col-span-1 md:col-span-2">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Description *</label>
-                    <textarea rows={3} value={description} onChange={(e)=>setDescription(e.target.value)} placeholder="Program objectives and overview..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none resize-none custom-scrollbar" />
+                    <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Program objectives and overview..." className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none resize-none custom-scrollbar" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Program Coordinator</label>
-                    <input type="text" value={coordinator} onChange={(e)=>setCoordinator(e.target.value)} placeholder="Coordinator Name" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    <input type="text" value={coordinator} onChange={(e) => setCoordinator(e.target.value)} placeholder="Coordinator Name" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Program Manager</label>
-                    <input type="text" value={manager} onChange={(e) => setManager(e.target.value)} placeholder="Manager Name" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" /> 
+                    <input type="text" value={manager} onChange={(e) => setManager(e.target.value)} placeholder="Manager Name" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Target Beneficiaries</label>
-                    <input type="number" value={beneficiaries} onChange={(e)=>setBeneficiaries(Number(e.target.value))} placeholder="500" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    <input type="number" value={beneficiaries} onChange={(e) => setBeneficiaries(Number(e.target.value))} placeholder="500" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Estimated Budget (₹)</label>
-                    <input type="number" value={budget} onChange={(e)=>setBudget(e.target.value)} placeholder="500000" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="500000" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Progress (%)</label>
                     <input type="number" value={progress} onChange={(e) => setProgress(Number(e.target.value))} placeholder="0" min={0} max={100} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Location Coverage</label>
-                    <input type="text" value={location} onChange={(e)=>setLocation(e.target.value)} placeholder="e.g. Pan India" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
+                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pan India" className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none" />
                   </div>
 
                   <div className="space-y-1.5">
@@ -673,15 +776,15 @@ endDate: endDate ? new Date(endDate) : null,
                       <option value="CANCELLED">Cancelled</option>
                     </select>
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Start Date</label>
-                    <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-600" />
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-600" />
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date</label>
-                    <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-600" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-white border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#16a34a]/20 outline-none text-gray-600" />
                   </div>
                 </form>
               </div>
@@ -693,7 +796,7 @@ endDate: endDate ? new Date(endDate) : null,
                   onClick={handleCreateProgram}
                   className="px-10 py-3.5 rounded-full font-bold text-[13px] text-white bg-[#16A34A] hover:bg-[#15803d] shadow-[0_8px_20px_rgba(22,163,74,0.25)] transition-all flex items-center gap-2"
                 >
-                  <CheckCircle2 className="w-4 h-4"/>
+                  <CheckCircle2 className="w-4 h-4" />
                   Save Program
                 </button>
               </div>
@@ -724,25 +827,55 @@ endDate: endDate ? new Date(endDate) : null,
               <div className="flex-1 overflow-y-auto custom-scrollbar p-8">
                 <form className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                  {/* File Upload Area */}
-                  <div className="col-span-1 md:col-span-2 border-2 border-dashed border-gray-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-orange-50/50 transition-colors cursor-pointer relative">
+                  {/* Program Cover Image */}
+                  <div className="col-span-1 md:col-span-2 border-2 border-dashed border-gray-200 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-orange-50/50 transition-colors relative">
+
                     <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
                       <UploadCloud className="w-6 h-6 text-[#f97316]" />
                     </div>
-                    <h4 className="text-[13px] font-extrabold text-gray-900">Update Program Banner</h4>
-                    <p className="text-[11px] font-bold text-gray-400 mb-2">1920x1080px recommended</p>
-                    {coverImage && <p className="text-[11px] font-bold text-[#f97316] bg-orange-100 px-3 py-1 rounded-full">{coverImage}</p>}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          setCoverImage(file.name);
-                        }
+
+                    <h4 className="text-[13px] font-extrabold text-gray-900">
+                      Update Program Banner
+                    </h4>
+
+                    <p className="text-[11px] font-bold text-gray-400 mb-4">
+                      1920x1080px recommended
+                    </p>
+
+                    <MediaUploader
+                      accept="image"
+                      multiple={false}
+                      folder={CLOUDINARY_FOLDERS.programs.covers}
+                      buttonText="Upload New Program Cover"
+                      onUpload={(media: UploadedMedia) => {
+                        setCoverImage(media.url);
+                        setCoverImagePublicId(media.publicId);
+                        setCoverChanged(true);
                       }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
+
+                    {coverImage && (
+                      <div className="mt-4 w-full max-w-md">
+                        <img
+                          src={coverImage}
+                          alt="Program cover preview"
+                          className="w-full h-48 object-cover rounded-2xl border border-gray-200"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCoverImage("");
+                            setCoverImagePublicId("");
+                            setCoverChanged(true);
+                          }}
+                          className="mt-3 text-[11px] font-extrabold text-red-500 hover:text-red-600"
+                        >
+                          Remove Cover
+                        </button>
+                      </div>
+                    )}
+
                   </div>
 
                   {/* Basic Information */}
@@ -756,18 +889,18 @@ endDate: endDate ? new Date(endDate) : null,
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Category *</label>
-                    <select value={category} onChange={(e)=>setCategory(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none">
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none appearance-none">
                       <option value="">Select a Category</option>
                       {programCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                   <div className="space-y-1.5 col-span-1 md:col-span-2">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Description *</label>
-                    <textarea rows={3} value={description} onChange={(e)=>setDescription(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none resize-none custom-scrollbar" />
+                    <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none resize-none custom-scrollbar" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Program Coordinator</label>
-                    <input type="text" value={coordinator} onChange={(e)=>setCoordinator(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                    <input type="text" value={coordinator} onChange={(e) => setCoordinator(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Program Manager</label>
@@ -775,7 +908,7 @@ endDate: endDate ? new Date(endDate) : null,
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Estimated Budget (₹)</label>
-                    <input type="number" value={budget} onChange={(e)=>setBudget(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                    <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
                   </div>
 
                   <div className="space-y-1.5">
@@ -785,7 +918,7 @@ endDate: endDate ? new Date(endDate) : null,
 
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Location Coverage</label>
-                    <input type="text" value={location} onChange={(e)=>setLocation(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
+                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none" />
                   </div>
 
                   <div className="space-y-1.5">
@@ -797,14 +930,14 @@ endDate: endDate ? new Date(endDate) : null,
                       <option value="CANCELLED">Cancelled</option>
                     </select>
                   </div>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">Start Date</label>
-                    <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-600" />
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-600" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-extrabold text-gray-500 uppercase tracking-widest">End Date</label>
-                    <input type="date" value={endDate} onChange={(e)=>setEndDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-600" />
+                    <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-[1.2rem] py-3.5 px-4 text-sm font-bold focus:ring-2 focus:ring-[#f97316]/20 outline-none text-gray-600" />
                   </div>
                 </form>
               </div>

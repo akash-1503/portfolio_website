@@ -543,14 +543,21 @@ async function deleteCloudinaryAsset(
   }
 
   try {
-    const result =
-      await cloudinary.uploader.destroy(
-        publicId,
-        {
-          resource_type: resourceType,
-          invalidate: true,
-        }
-      );
+    console.log("🚨 CLOUDINARY DELETE CALLED", {
+  publicId,
+  resourceType,
+  time: new Date().toISOString(),
+  stack: new Error().stack,
+});
+
+const result =
+  await cloudinary.uploader.destroy(
+    publicId,
+    {
+      resource_type: resourceType,
+      invalidate: true,
+    }
+  );
 
     console.log(
       "Cloudinary asset deletion:",
@@ -1535,6 +1542,8 @@ export async function PATCH(
   req: NextRequest
 ) {
   try {
+     console.log("========== GALLERY PATCH START ==========");
+    console.log("PATCH TIME:", new Date().toISOString());
     const auth =
       await authenticateAdmin(req);
 
@@ -1576,6 +1585,34 @@ export async function PATCH(
 
     try {
       body = await req.json();
+
+        console.log("========== GALLERY PATCH BODY ==========");
+  console.log(
+    JSON.stringify(
+      {
+        id: body.id,
+        title: body.title,
+        isPublished: body.isPublished,
+        isFeatured: body.isFeatured,
+        thumbnailUrl: body.thumbnailUrl,
+        thumbnailPublicId: body.thumbnailPublicId,
+        mediaProvided: body.media !== undefined,
+        mediaCount: Array.isArray(body.media)
+          ? body.media.length
+          : "NOT_ARRAY",
+        media: Array.isArray(body.media)
+          ? body.media.map((item: any) => ({
+              mediaUrl: item.mediaUrl,
+              publicId: item.publicId,
+              thumbnailPublicId: item.thumbnailPublicId,
+              mediaType: item.mediaType,
+            }))
+          : undefined,
+      },
+      null,
+      2
+    )
+  );
     } catch {
       return NextResponse.json(
         {
@@ -1623,6 +1660,7 @@ export async function PATCH(
           eventId: true,
           campaignId: true,
 
+          thumbnailUrl: true,
           thumbnailPublicId: true,
 
           media: {
@@ -2089,8 +2127,19 @@ export async function PATCH(
     ======================================================== */
 
     const mediaWasProvided =
-      body.media !==
-      undefined;
+  body.updateMedia === true &&
+  body.media !== undefined;
+
+console.log("========== MEDIA DECISION ==========");
+
+console.log({
+  galleryId: id,
+  mediaWasProvided,
+  mediaIsArray: Array.isArray(body.media),
+  mediaCount: Array.isArray(body.media)
+    ? body.media.length
+    : null,
+});
 
     let media:
       GalleryMediaInput[] =
@@ -2229,48 +2278,76 @@ export async function PATCH(
        DELETE OLD CLOUDINARY MEDIA WHEN MEDIA IS REPLACED
     ======================================================== */
 
-    const oldCloudinaryAssetsToDelete: {
-      publicId: string;
-      resourceType: "image" | "video";
-    }[] = [];
+   const oldCloudinaryAssetsToDelete: {
+  publicId: string;
+  resourceType: "image" | "video";
+}[] = [];
 
-    if (mediaWasProvided) {
-      for (const oldMedia of existing.media) {
-        if (oldMedia.publicId) {
-          oldCloudinaryAssetsToDelete.push({
-            publicId:
-              oldMedia.publicId,
-            resourceType:
-              oldMedia.mediaType ===
-              GalleryMediaType.VIDEO
-                ? "video"
-                : "image",
-          });
-        }
-
-        if (
-          oldMedia.thumbnailPublicId
-        ) {
-          oldCloudinaryAssetsToDelete.push({
-            publicId:
-              oldMedia.thumbnailPublicId,
-            resourceType: "image",
-          });
-        }
-      }
+if (mediaWasProvided) {
+  for (const oldMedia of existing.media) {
+    if (oldMedia.publicId) {
+      oldCloudinaryAssetsToDelete.push({
+        publicId: oldMedia.publicId,
+        resourceType:
+          oldMedia.mediaType === GalleryMediaType.VIDEO
+            ? "video"
+            : "image",
+      });
     }
 
+    if (oldMedia.thumbnailPublicId) {
+      oldCloudinaryAssetsToDelete.push({
+        publicId: oldMedia.thumbnailPublicId,
+        resourceType: "image",
+      });
+    }
+  }
+}
+
+console.log(
+  "========== CLOUDINARY ASSETS MARKED FOR DELETION =========="
+);
+
+console.log(
+  JSON.stringify(
+    oldCloudinaryAssetsToDelete,
+    null,
+    2
+  )
+);
     /*
      * If the gallery thumbnail itself is being changed,
      * remember the old thumbnail for deletion.
      */
-    const thumbnailIsBeingChanged =
-      body.thumbnailUrl !==
-        undefined ||
-      body.coverImage !==
-        undefined ||
-      body.thumbnailPublicId !==
-        undefined;
+ const incomingThumbnailUrl =
+  body.thumbnailUrl !== undefined
+    ? typeof body.thumbnailUrl === "string"
+      ? body.thumbnailUrl.trim() || null
+      : null
+    : body.coverImage !== undefined
+      ? typeof body.coverImage === "string"
+        ? body.coverImage.trim() || null
+        : null
+      : undefined;
+
+const incomingThumbnailPublicId =
+  body.thumbnailPublicId !== undefined
+    ? typeof body.thumbnailPublicId === "string"
+      ? body.thumbnailPublicId.trim() || null
+      : null
+    : undefined;
+
+const thumbnailUrlChanged =
+  incomingThumbnailUrl !== undefined &&
+  incomingThumbnailUrl !== existing.thumbnailUrl;
+
+const thumbnailPublicIdChanged =
+  incomingThumbnailPublicId !== undefined &&
+  incomingThumbnailPublicId !== existing.thumbnailPublicId;
+
+const thumbnailIsBeingChanged =
+  thumbnailUrlChanged ||
+  thumbnailPublicIdChanged;
 
     if (
       thumbnailIsBeingChanged &&
@@ -2522,24 +2599,29 @@ export async function PATCH(
     );
   }
 }
-
 /* ============================================================
    DELETE
    DELETE /api/admin/gallery
 
-   Deletes:
+   Permanently deletes:
    1. Gallery thumbnail from Cloudinary
    2. Gallery media from Cloudinary
    3. Media thumbnails from Cloudinary
-   4. Gallery record is soft-deleted from database
+   4. GalleryMedia records from database
+   5. GalleryPost record from database
+
+   Cloudinary deletion happens first.
+   Database records are deleted only when all Cloudinary
+   deletions succeed.
 ============================================================ */
 
-export async function DELETE(
-  req: NextRequest
-) {
+export async function DELETE(req: NextRequest) {
   try {
-    const auth =
-      await authenticateAdmin(req);
+    // ---------------------------------------------------------
+    // AUTHENTICATION
+    // ---------------------------------------------------------
+
+    const auth = await authenticateAdmin(req);
 
     if (!auth.success) {
       return auth.response;
@@ -2547,20 +2629,13 @@ export async function DELETE(
 
     const { admin } = auth;
 
-    /* ========================================================
-       CONTENT TYPE
-    ======================================================== */
+    // ---------------------------------------------------------
+    // CONTENT TYPE
+    // ---------------------------------------------------------
 
-    const contentType =
-      req.headers.get(
-        "content-type"
-      ) || "";
+    const contentType = req.headers.get("content-type") || "";
 
-    if (
-      !contentType
-        .toLowerCase()
-        .includes("application/json")
-    ) {
+    if (!contentType.toLowerCase().includes("application/json")) {
       return NextResponse.json(
         {
           success: false,
@@ -2571,9 +2646,9 @@ export async function DELETE(
       );
     }
 
-    /* ========================================================
-       READ JSON
-    ======================================================== */
+    // ---------------------------------------------------------
+    // READ JSON
+    // ---------------------------------------------------------
 
     let body: any;
 
@@ -2583,8 +2658,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Invalid JSON request body.",
+          message: "Invalid JSON request body.",
         },
         { status: 400 }
       );
@@ -2599,16 +2673,16 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Gallery ID is required.",
+          message: "Gallery ID is required.",
         },
         { status: 400 }
       );
     }
 
-    /* ========================================================
-       FIND GALLERY
-    ======================================================== */
+    // ---------------------------------------------------------
+    // FIND GALLERY POST
+    // Verify that the story belongs to this admin's NGO.
+    // ---------------------------------------------------------
 
     const galleryPost =
       await prisma.galleryPost.findFirst({
@@ -2622,8 +2696,11 @@ export async function DELETE(
           id: true,
           title: true,
 
-          thumbnailPublicId: true,
+          // Cover image Cloudinary public ID
+          thumbnailUrl: true,
+thumbnailPublicId: true,
 
+          // All gallery media
           media: {
             select: {
               publicId: true,
@@ -2638,129 +2715,149 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Gallery story not found.",
+          message: "Gallery story not found.",
         },
         { status: 404 }
       );
     }
 
-    /* ========================================================
-       COLLECT CLOUDINARY ASSETS
-    ======================================================== */
+    // ---------------------------------------------------------
+    // DELETE CLOUDINARY ASSETS
+    // ---------------------------------------------------------
 
-    const cloudinaryAssets = new Map<
-      string,
-      "image" | "video"
-    >();
+    const cloudinaryDeletionErrors: string[] = [];
 
-    if (
-      galleryPost.thumbnailPublicId
-    ) {
-      cloudinaryAssets.set(
-        galleryPost.thumbnailPublicId,
-        "image"
+    // ---------------------------------------------------------
+    // 1. DELETE COVER IMAGE
+    // ---------------------------------------------------------
+
+    if (galleryPost.thumbnailPublicId) {
+      try {
+        await deleteCloudinaryAsset(
+          galleryPost.thumbnailPublicId,
+          "image"
+        );
+      } catch (error) {
+        console.error(
+          "Failed to delete gallery thumbnail:",
+          error
+        );
+
+        cloudinaryDeletionErrors.push(
+          `Failed to delete gallery thumbnail: ${galleryPost.thumbnailPublicId}`
+        );
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 2. DELETE ALL GALLERY MEDIA
+    // ---------------------------------------------------------
+
+    for (const media of galleryPost.media) {
+      // -------------------------------------------------------
+      // Delete main image/video
+      // -------------------------------------------------------
+
+      if (media.publicId) {
+        try {
+          await deleteCloudinaryAsset(
+            media.publicId,
+            media.mediaType === GalleryMediaType.VIDEO
+              ? "video"
+              : "image"
+          );
+        } catch (error) {
+          console.error(
+            "Failed to delete gallery media:",
+            error
+          );
+
+          cloudinaryDeletionErrors.push(
+            `Failed to delete media: ${media.publicId}`
+          );
+        }
+      }
+
+      // -------------------------------------------------------
+      // Delete media thumbnail
+      // -------------------------------------------------------
+
+      if (media.thumbnailPublicId) {
+        try {
+          await deleteCloudinaryAsset(
+            media.thumbnailPublicId,
+            "image"
+          );
+        } catch (error) {
+          console.error(
+            "Failed to delete gallery media thumbnail:",
+            error
+          );
+
+          cloudinaryDeletionErrors.push(
+            `Failed to delete media thumbnail: ${media.thumbnailPublicId}`
+          );
+        }
+      }
+    }
+
+    // ---------------------------------------------------------
+    // STOP IF CLOUDINARY DELETION FAILED
+    //
+    // We do NOT delete database records if Cloudinary
+    // deletion failed, so the admin can retry.
+    // ---------------------------------------------------------
+
+    if (cloudinaryDeletionErrors.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "The story was not deleted from the database because some Cloudinary files could not be deleted.",
+
+          cloudinaryDeletionErrors,
+        },
+        { status: 500 }
       );
     }
 
-    for (
-      const media of
-        galleryPost.media
-    ) {
-      if (media.publicId) {
-        cloudinaryAssets.set(
-          media.publicId,
-          media.mediaType ===
-            GalleryMediaType.VIDEO
-            ? "video"
-            : "image"
-        );
-      }
+    // ---------------------------------------------------------
+    // HARD DELETE DATABASE RECORDS
+    // ---------------------------------------------------------
 
-      if (
-        media.thumbnailPublicId
-      ) {
-        cloudinaryAssets.set(
-          media.thumbnailPublicId,
-          "image"
-        );
-      }
-    }
+    await prisma.$transaction(async (tx) => {
+      // First delete all GalleryMedia records
+      await tx.galleryMedia.deleteMany({
+        where: {
+          galleryPostId: galleryPost.id,
+        },
+      });
 
-    /* ========================================================
-       DELETE CLOUDINARY ASSETS
-    ======================================================== */
-
-    const cloudinaryDeletionErrors: string[] =
-      [];
-
-    for (
-      const [
-        publicId,
-        resourceType,
-      ] of cloudinaryAssets
-    ) {
-      try {
-        await deleteCloudinaryAsset(
-          publicId,
-          resourceType
-        );
-      } catch {
-        cloudinaryDeletionErrors.push(
-          `Failed to delete Cloudinary asset: ${publicId}`
-        );
-      }
-    }
-
-    /* ========================================================
-       SOFT DELETE DATABASE RECORD
-       
-       We intentionally still soft-delete the DB record
-       even if Cloudinary has a temporary deletion failure.
-    ======================================================== */
-
-    await prisma.galleryPost.update({
-      where: {
-        id: galleryPost.id,
-      },
-
-      data: {
-        isDeleted: true,
-        deletedAt: new Date(),
-      },
+      // Then permanently delete GalleryPost
+      await tx.galleryPost.delete({
+        where: {
+          id: galleryPost.id,
+        },
+      });
     });
 
-    /* ========================================================
-       RESPONSE
-    ======================================================== */
+    // ---------------------------------------------------------
+    // SUCCESS
+    // ---------------------------------------------------------
 
     return NextResponse.json(
       {
         success: true,
 
         message:
-          cloudinaryDeletionErrors.length >
-          0
-            ? "Gallery story deleted from the database, but some Cloudinary assets could not be deleted."
-            : "Gallery story and its Cloudinary media were deleted successfully.",
+          "Gallery story, database records, and Cloudinary media deleted successfully.",
 
         data: {
-          id:
-            galleryPost.id,
-
-          title:
-            galleryPost.title,
-
-          cloudinaryAssetsDeleted:
-            cloudinaryAssets.size -
-            cloudinaryDeletionErrors.length,
-
-          cloudinaryDeletionErrors,
+          id: galleryPost.id,
+          title: galleryPost.title,
         },
       },
-      {
-        status: 200,
-      }
+      { status: 200 }
     );
   } catch (error) {
     console.error(
@@ -2768,11 +2865,25 @@ export async function DELETE(
       error
     );
 
+    // Handle Prisma errors
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Database error while deleting gallery story.",
+          code: error.code,
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
-        message:
-          "Failed to delete gallery story.",
+        message: "Failed to delete gallery story.",
       },
       { status: 500 }
     );

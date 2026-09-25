@@ -146,7 +146,7 @@ export default function Navbar({ user = null }: { user?: any }) {
                     {user?.role || "ROLE"}
                   </span>
                 </div>
-                <div className="p-2 flex flex-col gap-1">
+                <div className="p-2 flex flex-col gap-1"> 
                   <Link
                     href="/profile"
                     onClick={() => setIsProfileOpen(false)}
